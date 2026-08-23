@@ -12,6 +12,7 @@ export type ExerciseBlock = {
   prescribedWeight: number | null;
   prescribedRpe: number | null;
   notes: string | null;
+  priorBest: number | null;
   loggedSets: { setNumber: number; reps: number | null; weight: number | null; rpe: number | null }[];
 };
 
@@ -36,6 +37,7 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
   );
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [prId, setPrId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function updateSet(workoutExerciseId: string, index: number, patch: Partial<SetInput>) {
@@ -56,6 +58,7 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
   async function saveExercise(workoutExerciseId: string) {
     setError(null);
     setSavingId(workoutExerciseId);
+    setPrId(null);
 
     const supabase = createClient();
     const rows = sets[workoutExerciseId]
@@ -81,8 +84,14 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
       }
     }
 
+    const block = blocks.find((b) => b.workoutExerciseId === workoutExerciseId);
+    const weightsLogged = rows.map((r) => r.weight).filter((w): w is number => w != null);
+    const bestJustLogged = weightsLogged.length > 0 ? Math.max(...weightsLogged) : null;
+    const isPr = bestJustLogged != null && bestJustLogged > (block?.priorBest ?? 0);
+
     setSavingId(null);
     setSavedId(workoutExerciseId);
+    if (isPr) setPrId(workoutExerciseId);
     router.refresh();
   }
 
@@ -149,6 +158,11 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
               <span className="text-sm text-emerald-400">Saved</span>
             )}
           </div>
+          {prId === block.workoutExerciseId && (
+            <p className="mt-3 rounded-md bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-400">
+              🎉 New PR on {block.exerciseName}!
+            </p>
+          )}
         </div>
       ))}
       {error && <p className="text-sm text-red-400">{error}</p>}

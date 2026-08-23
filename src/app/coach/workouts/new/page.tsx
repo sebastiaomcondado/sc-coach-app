@@ -6,12 +6,13 @@ export default async function NewWorkoutPage() {
   const profile = await getCurrentProfile();
   const supabase = await createClient();
 
-  const [{ data: athleteRows }, { data: exercises }] = await Promise.all([
+  const [{ data: athleteRows }, { data: exercises }, { data: templates }] = await Promise.all([
     supabase
       .from("coach_athletes")
       .select("athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name)")
       .eq("coach_id", profile!.id),
     supabase.from("exercises").select("id, name, category").order("name"),
+    supabase.from("program_templates").select("id, name").eq("coach_id", profile!.id).order("name"),
   ]);
 
   const athletes = (athleteRows ?? [])
@@ -22,7 +23,7 @@ export default async function NewWorkoutPage() {
   return (
     <div>
       <h1 className="mb-6 text-xl font-semibold text-white">Build & assign a workout</h1>
-      <WorkoutBuilder athletes={athletes} exercises={exercises ?? []} />
+      <WorkoutBuilder athletes={athletes} exercises={exercises ?? []} templates={templates ?? []} />
     </div>
   );
 }

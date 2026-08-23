@@ -8,12 +8,22 @@ export default async function RosterPage() {
 
   const { data: rows } = await supabase
     .from("coach_athletes")
-    .select("athlete_id, athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name)")
+    .select(
+      "athlete_id, athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name, position, jersey_number, squad)"
+    )
     .eq("coach_id", profile!.id);
+
+  type RosterAthlete = {
+    id: string;
+    full_name: string;
+    position: string | null;
+    jersey_number: number | null;
+    squad: string | null;
+  };
 
   const athletes = (rows ?? [])
     .map((r) => r.athlete)
-    .filter((a): a is { id: string; full_name: string } => !!a)
+    .filter((a): a is RosterAthlete => !!a)
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
   return (
@@ -44,7 +54,18 @@ export default async function RosterPage() {
                 href={`/coach/athletes/${athlete.id}`}
                 className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900"
               >
-                <span className="text-white">{athlete.full_name}</span>
+                <div>
+                  <span className="text-white">{athlete.full_name}</span>
+                  <span className="ml-2 text-sm text-neutral-500">
+                    {[
+                      athlete.position,
+                      athlete.jersey_number ? `#${athlete.jersey_number}` : null,
+                      athlete.squad,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </div>
                 <span className="text-sm text-neutral-500">View progress →</span>
               </Link>
             </li>

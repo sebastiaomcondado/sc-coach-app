@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 type Athlete = { id: string; full_name: string };
 type Exercise = { id: string; name: string; category: string | null };
+type Template = { id: string; name: string };
 
 type Row = {
   exerciseId: string;
@@ -20,15 +21,55 @@ function emptyRow(defaultExerciseId: string): Row {
   return { exerciseId: defaultExerciseId, sets: "3", reps: "5", weight: "", rpe: "", notes: "" };
 }
 
-export function WorkoutBuilder({ athletes, exercises }: { athletes: Athlete[]; exercises: Exercise[] }) {
+export function WorkoutBuilder({
+  athletes,
+  exercises,
+  templates,
+}: {
+  athletes: Athlete[];
+  exercises: Exercise[];
+  templates: Template[];
+}) {
   const router = useRouter();
   const [athleteIds, setAthleteIds] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [scheduledDate, setScheduledDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<Row[]>(exercises.length ? [emptyRow(exercises[0].id)] : []);
+  const [templateId, setTemplateId] = useState("");
+  const [templateLoading, setTemplateLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  async function applyTemplate(id: string) {
+    setTemplateId(id);
+    if (!id) return;
+
+    setTemplateLoading(true);
+    const supabase = createClient();
+    const { data: templateExercises, error: fetchError } = await supabase
+      .from("template_exercises")
+      .select("exercise_id, sets, reps, weight, rpe, notes")
+      .eq("template_id", id)
+      .order("position");
+    setTemplateLoading(false);
+
+    if (fetchError || !templateExercises) {
+      setError(fetchError?.message ?? "Could not load template.");
+      return;
+    }
+
+    setRows(
+      templateExercises.map((te) => ({
+        exerciseId: te.exercise_id,
+        sets: te.sets?.toString() ?? "",
+        reps: te.reps ?? "",
+        weight: te.weight?.toString() ?? "",
+        rpe: te.rpe?.toString() ?? "",
+        notes: te.notes ?? "",
+      }))
+    );
+  }
 
   function toggleAthlete(id: string) {
     setAthleteIds((prev) => (prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]));
@@ -182,6 +223,25 @@ export function WorkoutBuilder({ athletes, exercises }: { athletes: Athlete[]; e
           className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
         />
       </div>
+
+      {templates.length > 0 && (
+        <div>
+          <label className="mb-1 block text-sm text-neutral-300">Start from template (optional)</label>
+          <select
+            value={templateId}
+            onChange={(e) => applyTemplate(e.target.value)}
+            disabled={templateLoading}
+            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
+          >
+            <option value="">— None —</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <div className="mb-2 flex items-center justify-between">

@@ -9,16 +9,37 @@ export interface Database {
           full_name: string;
           role: Role;
           created_at: string;
+          photo_path: string | null;
+          date_of_birth: string | null;
+          position: string | null;
+          height_cm: number | null;
+          weight_kg: number | null;
+          jersey_number: number | null;
+          squad: string | null;
         };
         Insert: {
           id: string;
           full_name: string;
           role: Role;
           created_at?: string;
+          photo_path?: string | null;
+          date_of_birth?: string | null;
+          position?: string | null;
+          height_cm?: number | null;
+          weight_kg?: number | null;
+          jersey_number?: number | null;
+          squad?: string | null;
         };
         Update: {
           full_name?: string;
           role?: Role;
+          photo_path?: string | null;
+          date_of_birth?: string | null;
+          position?: string | null;
+          height_cm?: number | null;
+          weight_kg?: number | null;
+          jersey_number?: number | null;
+          squad?: string | null;
         };
         Relationships: [];
       };
@@ -214,6 +235,120 @@ export interface Database {
             columns: ["athlete_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      body_metrics: {
+        Row: {
+          id: string;
+          athlete_id: string;
+          logged_date: string;
+          bodyweight_kg: number | null;
+          sleep_hours: number | null;
+          readiness: number | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          athlete_id: string;
+          logged_date?: string;
+          bodyweight_kg?: number | null;
+          sleep_hours?: number | null;
+          readiness?: number | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          bodyweight_kg?: number | null;
+          sleep_hours?: number | null;
+          readiness?: number | null;
+          notes?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "body_metrics_athlete_id_fkey";
+            columns: ["athlete_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      program_templates: {
+        Row: {
+          id: string;
+          coach_id: string;
+          name: string;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          name: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          notes?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "program_templates_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      template_exercises: {
+        Row: {
+          id: string;
+          template_id: string;
+          exercise_id: string;
+          position: number;
+          sets: number | null;
+          reps: string | null;
+          weight: number | null;
+          rpe: number | null;
+          notes: string | null;
+        };
+        Insert: {
+          id?: string;
+          template_id: string;
+          exercise_id: string;
+          position?: number;
+          sets?: number | null;
+          reps?: string | null;
+          weight?: number | null;
+          rpe?: number | null;
+          notes?: string | null;
+        };
+        Update: {
+          position?: number;
+          sets?: number | null;
+          reps?: string | null;
+          weight?: number | null;
+          rpe?: number | null;
+          notes?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "template_exercises_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "program_templates";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "template_exercises_exercise_id_fkey";
+            columns: ["exercise_id"];
+            isOneToOne: false;
+            referencedRelation: "exercises";
             referencedColumns: ["id"];
           },
         ];

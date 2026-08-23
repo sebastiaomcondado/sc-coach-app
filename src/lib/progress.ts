@@ -33,3 +33,17 @@ export function buildProgressSeries(rows: LoggedSetRow[]): ExerciseSeries[] {
     }))
     .sort((a, b) => a.exerciseName.localeCompare(b.exerciseName));
 }
+
+export type PersonalRecord = { exerciseName: string; weight: number; date: string };
+
+// The heaviest weight ever logged per exercise, and the date it was first hit.
+export function buildPersonalRecords(series: ExerciseSeries[]): PersonalRecord[] {
+  return series
+    .map((s) => {
+      const weight = Math.max(...s.points.map((p) => p.weight));
+      const date = s.points.find((p) => p.weight === weight)?.date ?? "";
+      return { exerciseName: s.exerciseName, weight, date };
+    })
+    .filter((pr) => Number.isFinite(pr.weight))
+    .sort((a, b) => b.weight - a.weight);
+}
