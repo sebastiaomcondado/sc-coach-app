@@ -19,24 +19,23 @@ export default function SignupPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
-
-    if (signUpError || !data.user) {
-      setLoading(false);
-      setError(signUpError?.message ?? "Could not create account.");
-      return;
-    }
-
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: data.user.id,
-      full_name: fullName,
-      role: "coach",
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName, role: "coach" } },
     });
 
     setLoading(false);
 
-    if (profileError) {
-      setError(profileError.message);
+    if (signUpError || !data.user) {
+      setError(signUpError?.message ?? "Could not create account.");
+      return;
+    }
+
+    if (!data.session) {
+      setError(
+        "Account created, but you need to confirm your email before logging in. Check your inbox, or ask whoever set up this app to disable email confirmation for faster local testing."
+      );
       return;
     }
 

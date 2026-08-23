@@ -37,6 +37,7 @@ export async function POST(request: Request) {
     email,
     password,
     email_confirm: true,
+    user_metadata: { full_name: fullName, role: "athlete" },
   });
 
   if (createError || !created.user) {
@@ -47,17 +48,6 @@ export async function POST(request: Request) {
   }
 
   const athleteId = created.user.id;
-
-  const { error: profileError } = await admin.from("profiles").insert({
-    id: athleteId,
-    full_name: fullName,
-    role: "athlete",
-  });
-
-  if (profileError) {
-    await admin.auth.admin.deleteUser(athleteId);
-    return NextResponse.json({ error: profileError.message }, { status: 400 });
-  }
 
   const { error: linkError } = await admin.from("coach_athletes").insert({
     coach_id: caller.id,
