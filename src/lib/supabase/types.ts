@@ -239,6 +239,36 @@ export interface Database {
           },
         ];
       };
+      athlete_invites: {
+        Row: {
+          token: string;
+          coach_id: string;
+          full_name: string | null;
+          created_at: string;
+          expires_at: string;
+          used_at: string | null;
+        };
+        Insert: {
+          token?: string;
+          coach_id: string;
+          full_name?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          used_at?: string | null;
+        };
+        Update: {
+          used_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "athlete_invites_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       body_metrics: {
         Row: {
           id: string;

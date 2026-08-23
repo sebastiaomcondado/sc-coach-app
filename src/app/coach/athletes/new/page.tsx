@@ -1,30 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-
-function randomPassword() {
-  return Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
-}
+import Link from "next/link";
 
 export default function NewAthletePage() {
-  const router = useRouter();
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState(randomPassword());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
+  const [link, setLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const res = await fetch("/api/athletes", {
+    const res = await fetch("/api/invites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName, email, password }),
+      body: JSON.stringify({ fullName }),
     });
     const body = await res.json();
 
@@ -35,38 +29,49 @@ export default function NewAthletePage() {
       return;
     }
 
-    setCreated({ email, password });
+    setLink(`${window.location.origin}/join/${body.token}`);
   }
 
-  if (created) {
+  async function copyLink() {
+    if (!link) return;
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  if (link) {
     return (
       <div className="max-w-md">
-        <h1 className="mb-4 text-xl font-semibold text-white">Athlete added</h1>
+        <h1 className="mb-4 text-xl font-semibold text-white">Invite link ready</h1>
         <p className="mb-4 text-neutral-300">
-          Share these login details with {fullName} — they should change their password after
-          logging in for the first time.
+          Send this link to {fullName || "your athlete"} — they&apos;ll set up their own account and
+          password, and land straight on the profile page.
         </p>
-        <div className="mb-6 space-y-1 rounded-md border border-neutral-800 bg-neutral-900 p-4 font-mono text-sm text-emerald-400">
-          <div>Email: {created.email}</div>
-          <div>Password: {created.password}</div>
-        </div>
-        <div className="flex gap-3">
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-neutral-800 bg-neutral-900 p-3">
+          <code className="flex-1 truncate text-sm text-emerald-400">{link}</code>
           <button
-            onClick={() => router.push("/coach")}
+            onClick={copyLink}
+            className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
+          >
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+        <p className="mb-6 text-xs text-neutral-500">Expires in 14 days, or once they use it.</p>
+        <div className="flex gap-3">
+          <Link
+            href="/coach"
             className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500"
           >
             Back to roster
-          </button>
+          </Link>
           <button
             onClick={() => {
-              setCreated(null);
+              setLink(null);
               setFullName("");
-              setEmail("");
-              setPassword(randomPassword());
             }}
             className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
           >
-            Add another
+            Invite another
           </button>
         </div>
       </div>
@@ -75,39 +80,19 @@ export default function NewAthletePage() {
 
   return (
     <div className="max-w-md">
-      <h1 className="mb-6 text-xl font-semibold text-white">Add an athlete</h1>
+      <h1 className="mb-2 text-xl font-semibold text-white">Invite an athlete</h1>
+      <p className="mb-6 text-sm text-neutral-400">
+        Generates a link you send them directly — they pick their own email and password.
+      </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm text-neutral-300">Full name</label>
+          <label className="mb-1 block text-sm text-neutral-300">Full name (optional)</label>
           <input
-            required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
+            placeholder="Leave blank and they can fill it in themselves"
             className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
           />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm text-neutral-300">Email</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm text-neutral-300">Temporary password</label>
-          <input
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 font-mono text-white outline-none focus:border-emerald-500"
-          />
-          <p className="mt-1 text-xs text-neutral-500">
-            Pre-filled with a random password — feel free to change it.
-          </p>
         </div>
 
         {error && <p className="text-sm text-red-400">{error}</p>}
@@ -117,7 +102,7 @@ export default function NewAthletePage() {
           disabled={loading}
           className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
         >
-          {loading ? "Adding…" : "Add athlete"}
+          {loading ? "Generating…" : "Generate invite link"}
         </button>
       </form>
     </div>
