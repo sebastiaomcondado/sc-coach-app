@@ -110,29 +110,29 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
           {block.notes && <p className="mb-3 text-sm text-neutral-400">{block.notes}</p>}
 
           <div className="space-y-2">
-            <div className="grid grid-cols-[2rem_1fr_1fr_1fr] gap-2 text-xs text-neutral-500">
+            <div className="grid grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2 text-xs text-neutral-500">
               <span>Set</span>
               <span>Reps</span>
               <span>Weight</span>
               <span>RPE</span>
             </div>
             {sets[block.workoutExerciseId].map((s, i) => (
-              <div key={i} className="grid grid-cols-[2rem_1fr_1fr_1fr] gap-2">
+              <div key={i} className="grid grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
                 <span className="flex items-center text-sm text-neutral-400">{i + 1}</span>
                 <input
                   value={s.reps}
                   onChange={(e) => updateSet(block.workoutExerciseId, i, { reps: e.target.value })}
-                  className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                  className="w-full min-w-0 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
                 />
                 <input
                   value={s.weight}
                   onChange={(e) => updateSet(block.workoutExerciseId, i, { weight: e.target.value })}
-                  className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                  className="w-full min-w-0 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
                 />
                 <input
                   value={s.rpe}
                   onChange={(e) => updateSet(block.workoutExerciseId, i, { rpe: e.target.value })}
-                  className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                  className="w-full min-w-0 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
                 />
               </div>
             ))}
