@@ -18,24 +18,26 @@ export default function SignupPage() {
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName, role: "coach" } },
+    const res = await fetch("/api/coach-signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fullName, email, password }),
     });
+    const body = await res.json();
 
-    setLoading(false);
-
-    if (signUpError || !data.user) {
-      setError(signUpError?.message ?? "Could not create account.");
+    if (!res.ok) {
+      setLoading(false);
+      setError(body.error ?? "Could not create account.");
       return;
     }
 
-    if (!data.session) {
-      setError(
-        "Account created, but you need to confirm your email before logging in. Check your inbox, or ask whoever set up this app to disable email confirmation for faster local testing."
-      );
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+    setLoading(false);
+
+    if (signInError) {
+      setError(signInError.message);
       return;
     }
 
