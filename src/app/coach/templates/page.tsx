@@ -16,12 +16,20 @@ export default async function TemplatesPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-white">Program templates</h1>
-        <Link
-          href="/coach/templates/new"
-          className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-        >
-          + New template
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/coach/templates/import"
+            className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
+          >
+            Import from Google Sheets
+          </Link>
+          <Link
+            href="/coach/templates/new"
+            className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          >
+            + New template
+          </Link>
+        </div>
       </div>
 
       {!templates || templates.length === 0 ? (

@@ -156,6 +156,9 @@ export interface Database {
           prescribed_weight: number | null;
           prescribed_rpe: number | null;
           notes: string | null;
+          section: string | null;
+          superset_group: string | null;
+          prescribed_rest: string | null;
         };
         Insert: {
           id?: string;
@@ -167,6 +170,9 @@ export interface Database {
           prescribed_weight?: number | null;
           prescribed_rpe?: number | null;
           notes?: string | null;
+          section?: string | null;
+          superset_group?: string | null;
+          prescribed_rest?: string | null;
         };
         Update: {
           position?: number;
@@ -175,6 +181,9 @@ export interface Database {
           prescribed_weight?: number | null;
           prescribed_rpe?: number | null;
           notes?: string | null;
+          section?: string | null;
+          superset_group?: string | null;
+          prescribed_rest?: string | null;
         };
         Relationships: [
           {
@@ -349,6 +358,8 @@ export interface Database {
           weight: number | null;
           rpe: number | null;
           notes: string | null;
+          section: string | null;
+          superset_group: string | null;
         };
         Insert: {
           id?: string;
@@ -360,6 +371,8 @@ export interface Database {
           weight?: number | null;
           rpe?: number | null;
           notes?: string | null;
+          section?: string | null;
+          superset_group?: string | null;
         };
         Update: {
           position?: number;
@@ -368,6 +381,8 @@ export interface Database {
           weight?: number | null;
           rpe?: number | null;
           notes?: string | null;
+          section?: string | null;
+          superset_group?: string | null;
         };
         Relationships: [
           {
@@ -382,6 +397,45 @@ export interface Database {
             columns: ["exercise_id"];
             isOneToOne: false;
             referencedRelation: "exercises";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      template_exercise_phases: {
+        Row: {
+          id: string;
+          template_exercise_id: string;
+          label: string | null;
+          position: number;
+          sets: number | null;
+          reps: string | null;
+          rpe: number | null;
+          rest: string | null;
+        };
+        Insert: {
+          id?: string;
+          template_exercise_id: string;
+          label?: string | null;
+          position?: number;
+          sets?: number | null;
+          reps?: string | null;
+          rpe?: number | null;
+          rest?: string | null;
+        };
+        Update: {
+          label?: string | null;
+          position?: number;
+          sets?: number | null;
+          reps?: string | null;
+          rpe?: number | null;
+          rest?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "template_exercise_phases_template_exercise_id_fkey";
+            columns: ["template_exercise_id"];
+            isOneToOne: false;
+            referencedRelation: "template_exercises";
             referencedColumns: ["id"];
           },
         ];

@@ -7,10 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 export type ExerciseBlock = {
   workoutExerciseId: string;
   exerciseName: string;
+  section: string | null;
+  supersetGroup: string | null;
   prescribedSets: number | null;
   prescribedReps: string | null;
   prescribedWeight: number | null;
   prescribedRpe: number | null;
+  prescribedRest: string | null;
   notes: string | null;
   priorBest: number | null;
   loggedSets: { setNumber: number; reps: number | null; weight: number | null; rpe: number | null }[];
@@ -95,16 +98,36 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
     router.refresh();
   }
 
+  const sectionHeadingFor = blocks.map((block, i) => {
+    const prevSection = i === 0 ? null : blocks[i - 1].section;
+    return block.section && block.section !== prevSection;
+  });
+
   return (
     <div className="space-y-6">
-      {blocks.map((block) => (
-        <div key={block.workoutExerciseId} className="rounded-lg border border-neutral-800 p-4">
+      {blocks.map((block, blockIndex) => {
+        const showSectionHeading = sectionHeadingFor[blockIndex];
+
+        return (
+        <div key={block.workoutExerciseId}>
+          {showSectionHeading && (
+            <h2 className="mb-2 mt-2 text-sm font-medium uppercase tracking-wide text-neutral-400">
+              {block.section}
+            </h2>
+          )}
+          <div className="rounded-lg border border-neutral-800 p-4">
           <div className="mb-3 flex items-baseline justify-between">
-            <h3 className="font-medium text-white">{block.exerciseName}</h3>
+            <h3 className="font-medium text-white">
+              {block.supersetGroup && (
+                <span className="mr-1.5 text-neutral-500">{block.supersetGroup}.</span>
+              )}
+              {block.exerciseName}
+            </h3>
             <span className="text-xs text-neutral-500">
               Target: {block.prescribedSets ?? "–"} x {block.prescribedReps ?? "–"}
               {block.prescribedWeight ? ` @ ${block.prescribedWeight}` : ""}
               {block.prescribedRpe ? ` (RPE ${block.prescribedRpe})` : ""}
+              {block.prescribedRest ? ` · Rest ${block.prescribedRest}` : ""}
             </span>
           </div>
           {block.notes && <p className="mb-3 text-sm text-neutral-400">{block.notes}</p>}
@@ -163,8 +186,10 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
               🎉 New PR on {block.exerciseName}!
             </p>
           )}
+          </div>
         </div>
-      ))}
+        );
+      })}
       {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );

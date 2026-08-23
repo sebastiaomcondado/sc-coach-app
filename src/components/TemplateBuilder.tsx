@@ -6,17 +6,36 @@ import { createClient } from "@/lib/supabase/client";
 
 type Exercise = { id: string; name: string; category: string | null };
 
-type Row = {
-  exerciseId: string;
+type Phase = {
+  label: string;
   sets: string;
   reps: string;
-  weight: string;
   rpe: string;
-  notes: string;
+  rest: string;
 };
 
+type Row = {
+  exerciseId: string;
+  section: string;
+  supersetGroup: string;
+  weight: string;
+  notes: string;
+  phases: Phase[];
+};
+
+function emptyPhase(): Phase {
+  return { label: "", sets: "3", reps: "5", rpe: "", rest: "" };
+}
+
 function emptyRow(defaultExerciseId: string): Row {
-  return { exerciseId: defaultExerciseId, sets: "3", reps: "5", weight: "", rpe: "", notes: "" };
+  return {
+    exerciseId: defaultExerciseId,
+    section: "",
+    supersetGroup: "",
+    weight: "",
+    notes: "",
+    phases: [emptyPhase()],
+  };
 }
 
 export function TemplateBuilder({ exercises }: { exercises: Exercise[] }) {
@@ -37,6 +56,30 @@ export function TemplateBuilder({ exercises }: { exercises: Exercise[] }) {
 
   function removeRow(index: number) {
     setRows((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function updatePhase(rowIndex: number, phaseIndex: number, patch: Partial<Phase>) {
+    setRows((prev) =>
+      prev.map((r, i) =>
+        i === rowIndex
+          ? { ...r, phases: r.phases.map((p, j) => (j === phaseIndex ? { ...p, ...patch } : p)) }
+          : r
+      )
+    );
+  }
+
+  function addPhase(rowIndex: number) {
+    setRows((prev) =>
+      prev.map((r, i) => (i === rowIndex ? { ...r, phases: [...r.phases, emptyPhase()] } : r))
+    );
+  }
+
+  function removePhase(rowIndex: number, phaseIndex: number) {
+    setRows((prev) =>
+      prev.map((r, i) =>
+        i === rowIndex ? { ...r, phases: r.phases.filter((_, j) => j !== phaseIndex) } : r
+      )
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -73,23 +116,45 @@ export function TemplateBuilder({ exercises }: { exercises: Exercise[] }) {
       return;
     }
 
-    const { error: exercisesError } = await supabase.from("template_exercises").insert(
-      rows.map((row, index) => ({
-        template_id: template.id,
-        exercise_id: row.exerciseId,
-        position: index,
-        sets: row.sets ? Number(row.sets) : null,
-        reps: row.reps || null,
-        weight: row.weight ? Number(row.weight) : null,
-        rpe: row.rpe ? Number(row.rpe) : null,
-        notes: row.notes || null,
+    const { data: insertedExercises, error: exercisesError } = await supabase
+      .from("template_exercises")
+      .insert(
+        rows.map((row, index) => ({
+          template_id: template.id,
+          exercise_id: row.exerciseId,
+          position: index,
+          section: row.section || null,
+          superset_group: row.supersetGroup || null,
+          weight: row.weight ? Number(row.weight) : null,
+          notes: row.notes || null,
+        }))
+      )
+      .select();
+
+    if (exercisesError || !insertedExercises) {
+      setLoading(false);
+      setError(exercisesError?.message ?? "Could not save exercises.");
+      return;
+    }
+
+    const phaseRows = rows.flatMap((row, rowIndex) =>
+      row.phases.map((phase, phaseIndex) => ({
+        template_exercise_id: insertedExercises[rowIndex].id,
+        label: phase.label || null,
+        position: phaseIndex,
+        sets: phase.sets ? Number(phase.sets) : null,
+        reps: phase.reps || null,
+        rpe: phase.rpe ? Number(phase.rpe) : null,
+        rest: phase.rest || null,
       }))
     );
 
+    const { error: phasesError } = await supabase.from("template_exercise_phases").insert(phaseRows);
+
     setLoading(false);
 
-    if (exercisesError) {
-      setError(exercisesError.message);
+    if (phasesError) {
+      setError(phasesError.message);
       return;
     }
 
@@ -140,55 +205,107 @@ export function TemplateBuilder({ exercises }: { exercises: Exercise[] }) {
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {rows.map((row, index) => (
-            <div
-              key={index}
-              className="grid grid-cols-2 gap-2 rounded-md border border-neutral-800 p-3 sm:grid-cols-6"
-            >
-              <select
-                value={row.exerciseId}
-                onChange={(e) => updateRow(index, { exerciseId: e.target.value })}
-                className="col-span-2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white sm:col-span-2"
-              >
-                {exercises.map((ex) => (
-                  <option key={ex.id} value={ex.id}>
-                    {ex.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                placeholder="Sets"
-                value={row.sets}
-                onChange={(e) => updateRow(index, { sets: e.target.value })}
-                className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
-              />
-              <input
-                placeholder="Reps"
-                value={row.reps}
-                onChange={(e) => updateRow(index, { reps: e.target.value })}
-                className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
-              />
-              <input
-                placeholder="Weight (optional)"
-                value={row.weight}
-                onChange={(e) => updateRow(index, { weight: e.target.value })}
-                className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
-              />
-              <div className="flex gap-2">
+            <div key={index} className="rounded-md border border-neutral-800 p-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                <select
+                  value={row.exerciseId}
+                  onChange={(e) => updateRow(index, { exerciseId: e.target.value })}
+                  className="col-span-2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                >
+                  {exercises.map((ex) => (
+                    <option key={ex.id} value={ex.id}>
+                      {ex.name}
+                    </option>
+                  ))}
+                </select>
                 <input
-                  placeholder="RPE"
-                  value={row.rpe}
-                  onChange={(e) => updateRow(index, { rpe: e.target.value })}
-                  className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                  placeholder="Section (e.g. Warm Up)"
+                  value={row.section}
+                  onChange={(e) => updateRow(index, { section: e.target.value })}
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
                 />
+                <input
+                  placeholder="Superset (e.g. A1)"
+                  value={row.supersetGroup}
+                  onChange={(e) => updateRow(index, { supersetGroup: e.target.value })}
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                />
+                <div className="flex gap-2">
+                  <input
+                    placeholder="Weight (optional)"
+                    value={row.weight}
+                    onChange={(e) => updateRow(index, { weight: e.target.value })}
+                    className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeRow(index)}
+                    className="px-2 text-neutral-500 hover:text-red-400"
+                    aria-label="Remove exercise"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                <div className="grid grid-cols-5 gap-2 text-xs text-neutral-500">
+                  <span>Phase label</span>
+                  <span>Sets</span>
+                  <span>Reps</span>
+                  <span>RPE</span>
+                  <span>Rest</span>
+                </div>
+                {row.phases.map((phase, phaseIndex) => (
+                  <div key={phaseIndex} className="grid grid-cols-5 gap-2">
+                    <input
+                      placeholder="e.g. Week 1-3"
+                      value={phase.label}
+                      onChange={(e) => updatePhase(index, phaseIndex, { label: e.target.value })}
+                      className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                    />
+                    <input
+                      value={phase.sets}
+                      onChange={(e) => updatePhase(index, phaseIndex, { sets: e.target.value })}
+                      className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                    />
+                    <input
+                      value={phase.reps}
+                      onChange={(e) => updatePhase(index, phaseIndex, { reps: e.target.value })}
+                      className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                    />
+                    <input
+                      value={phase.rpe}
+                      onChange={(e) => updatePhase(index, phaseIndex, { rpe: e.target.value })}
+                      className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        value={phase.rest}
+                        onChange={(e) => updatePhase(index, phaseIndex, { rest: e.target.value })}
+                        className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                      />
+                      {row.phases.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removePhase(index, phaseIndex)}
+                          className="px-1 text-neutral-500 hover:text-red-400"
+                          aria-label="Remove phase"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
                 <button
                   type="button"
-                  onClick={() => removeRow(index)}
-                  className="px-2 text-neutral-500 hover:text-red-400"
-                  aria-label="Remove exercise"
+                  onClick={() => addPhase(index)}
+                  className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
                 >
-                  ✕
+                  + Add phase (e.g. a later week&apos;s progression)
                 </button>
               </div>
             </div>
