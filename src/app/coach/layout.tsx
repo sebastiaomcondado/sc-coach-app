@@ -1,0 +1,24 @@
+import { redirect } from "next/navigation";
+import { getCurrentProfile } from "@/lib/auth";
+import { NavBar } from "@/components/NavBar";
+
+export default async function CoachLayout({ children }: { children: React.ReactNode }) {
+  const profile = await getCurrentProfile();
+
+  if (!profile) redirect("/login");
+  if (profile.role !== "coach") redirect("/athlete");
+
+  return (
+    <div className="min-h-screen bg-neutral-950">
+      <NavBar
+        name={profile.full_name}
+        links={[
+          { href: "/coach", label: "Roster" },
+          { href: "/coach/workouts/new", label: "New workout" },
+          { href: "/coach/exercises", label: "Exercise library" },
+        ]}
+      />
+      <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+    </div>
+  );
+}

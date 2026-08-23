@@ -1,0 +1,157 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+export type ExerciseBlock = {
+  workoutExerciseId: string;
+  exerciseName: string;
+  prescribedSets: number | null;
+  prescribedReps: string | null;
+  prescribedWeight: number | null;
+  prescribedRpe: number | null;
+  notes: string | null;
+  loggedSets: { setNumber: number; reps: number | null; weight: number | null; rpe: number | null }[];
+};
+
+type SetInput = { reps: string; weight: string; rpe: string };
+
+function initialSets(block: ExerciseBlock): SetInput[] {
+  const count = Math.max(block.prescribedSets ?? 0, block.loggedSets.length, 1);
+  return Array.from({ length: count }, (_, i) => {
+    const existing = block.loggedSets.find((s) => s.setNumber === i + 1);
+    return {
+      reps: existing?.reps?.toString() ?? "",
+      weight: existing?.weight?.toString() ?? "",
+      rpe: existing?.rpe?.toString() ?? "",
+    };
+  });
+}
+
+export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks: ExerciseBlock[] }) {
+  const router = useRouter();
+  const [sets, setSets] = useState<Record<string, SetInput[]>>(() =>
+    Object.fromEntries(blocks.map((b) => [b.workoutExerciseId, initialSets(b)]))
+  );
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function updateSet(workoutExerciseId: string, index: number, patch: Partial<SetInput>) {
+    setSavedId(null);
+    setSets((prev) => ({
+      ...prev,
+      [workoutExerciseId]: prev[workoutExerciseId].map((s, i) => (i === index ? { ...s, ...patch } : s)),
+    }));
+  }
+
+  function addSet(workoutExerciseId: string) {
+    setSets((prev) => ({
+      ...prev,
+      [workoutExerciseId]: [...prev[workoutExerciseId], { reps: "", weight: "", rpe: "" }],
+    }));
+  }
+
+  async function saveExercise(workoutExerciseId: string) {
+    setError(null);
+    setSavingId(workoutExerciseId);
+
+    const supabase = createClient();
+    const rows = sets[workoutExerciseId]
+      .map((s, i) => ({
+        workout_exercise_id: workoutExerciseId,
+        athlete_id: athleteId,
+        set_number: i + 1,
+        reps: s.reps ? Number(s.reps) : null,
+        weight: s.weight ? Number(s.weight) : null,
+        rpe: s.rpe ? Number(s.rpe) : null,
+      }))
+      .filter((r) => r.reps !== null || r.weight !== null || r.rpe !== null);
+
+    if (rows.length > 0) {
+      const { error } = await supabase
+        .from("logged_sets")
+        .upsert(rows, { onConflict: "workout_exercise_id,athlete_id,set_number" });
+
+      if (error) {
+        setSavingId(null);
+        setError(error.message);
+        return;
+      }
+    }
+
+    setSavingId(null);
+    setSavedId(workoutExerciseId);
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-6">
+      {blocks.map((block) => (
+        <div key={block.workoutExerciseId} className="rounded-lg border border-neutral-800 p-4">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h3 className="font-medium text-white">{block.exerciseName}</h3>
+            <span className="text-xs text-neutral-500">
+              Target: {block.prescribedSets ?? "–"} x {block.prescribedReps ?? "–"}
+              {block.prescribedWeight ? ` @ ${block.prescribedWeight}` : ""}
+              {block.prescribedRpe ? ` (RPE ${block.prescribedRpe})` : ""}
+            </span>
+          </div>
+          {block.notes && <p className="mb-3 text-sm text-neutral-400">{block.notes}</p>}
+
+          <div className="space-y-2">
+            <div className="grid grid-cols-[2rem_1fr_1fr_1fr] gap-2 text-xs text-neutral-500">
+              <span>Set</span>
+              <span>Reps</span>
+              <span>Weight</span>
+              <span>RPE</span>
+            </div>
+            {sets[block.workoutExerciseId].map((s, i) => (
+              <div key={i} className="grid grid-cols-[2rem_1fr_1fr_1fr] gap-2">
+                <span className="flex items-center text-sm text-neutral-400">{i + 1}</span>
+                <input
+                  value={s.reps}
+                  onChange={(e) => updateSet(block.workoutExerciseId, i, { reps: e.target.value })}
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                />
+                <input
+                  value={s.weight}
+                  onChange={(e) => updateSet(block.workoutExerciseId, i, { weight: e.target.value })}
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                />
+                <input
+                  value={s.rpe}
+                  onChange={(e) => updateSet(block.workoutExerciseId, i, { rpe: e.target.value })}
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => addSet(block.workoutExerciseId)}
+              className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+            >
+              + Add set
+            </button>
+            <button
+              type="button"
+              onClick={() => saveExercise(block.workoutExerciseId)}
+              disabled={savingId === block.workoutExerciseId}
+              className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+            >
+              {savingId === block.workoutExerciseId ? "Saving…" : "Save"}
+            </button>
+            {savedId === block.workoutExerciseId && (
+              <span className="text-sm text-emerald-400">Saved</span>
+            )}
+          </div>
+        </div>
+      ))}
+      {error && <p className="text-sm text-red-400">{error}</p>}
+    </div>
+  );
+}
