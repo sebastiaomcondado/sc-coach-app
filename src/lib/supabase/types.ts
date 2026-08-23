@@ -247,6 +247,7 @@ export interface Database {
           created_at: string;
           expires_at: string;
           used_at: string | null;
+          is_reusable: boolean;
         };
         Insert: {
           token?: string;
@@ -255,9 +256,11 @@ export interface Database {
           created_at?: string;
           expires_at?: string;
           used_at?: string | null;
+          is_reusable?: boolean;
         };
         Update: {
           used_at?: string | null;
+          expires_at?: string;
         };
         Relationships: [
           {

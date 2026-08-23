@@ -15,7 +15,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
 
   const invalidReason = !invite
     ? "This invite link isn't valid."
-    : invite.used_at
+    : !invite.is_reusable && invite.used_at
       ? "This invite link has already been used."
       : new Date(invite.expires_at) < new Date()
         ? "This invite link has expired."

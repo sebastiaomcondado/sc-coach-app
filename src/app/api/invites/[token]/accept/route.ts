@@ -23,7 +23,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   if (!invite) {
     return NextResponse.json({ error: "This invite link isn't valid." }, { status: 404 });
   }
-  if (invite.used_at) {
+  if (!invite.is_reusable && invite.used_at) {
     return NextResponse.json({ error: "This invite link has already been used." }, { status: 400 });
   }
   if (new Date(invite.expires_at) < new Date()) {
@@ -54,7 +54,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: linkError.message }, { status: 400 });
   }
 
-  await admin.from("athlete_invites").update({ used_at: new Date().toISOString() }).eq("token", token);
+  if (!invite.is_reusable) {
+    await admin.from("athlete_invites").update({ used_at: new Date().toISOString() }).eq("token", token);
+  }
 
   return NextResponse.json({ ok: true });
 }
