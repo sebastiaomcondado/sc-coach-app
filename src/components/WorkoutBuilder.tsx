@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -44,10 +44,12 @@ export function WorkoutBuilder({
   athletes,
   exercises,
   templates,
+  initialTemplateId,
 }: {
   athletes: Athlete[];
   exercises: Exercise[];
   templates: Template[];
+  initialTemplateId?: string;
 }) {
   const router = useRouter();
   const [athleteIds, setAthleteIds] = useState<string[]>([]);
@@ -59,6 +61,10 @@ export function WorkoutBuilder({
   const [templateLoading, setTemplateLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialTemplateId) applyTemplate(initialTemplateId);
+  }, [initialTemplateId]);
 
   async function applyTemplate(id: string) {
     setTemplateId(id);

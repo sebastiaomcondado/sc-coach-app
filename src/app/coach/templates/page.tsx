@@ -44,9 +44,17 @@ export default async function TemplatesPage() {
       ) : (
         <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
           {templates.map((t) => (
-            <li key={t.id} className="px-4 py-3">
-              <span className="text-white">{t.name}</span>
-              {t.notes && <p className="mt-1 text-sm text-neutral-500">{t.notes}</p>}
+            <li key={t.id}>
+              <Link
+                href={`/coach/templates/${t.id}`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900"
+              >
+                <div>
+                  <span className="text-white">{t.name}</span>
+                  {t.notes && <p className="mt-1 text-sm text-neutral-500">{t.notes}</p>}
+                </div>
+                <span className="text-sm text-neutral-500">View →</span>
+              </Link>
             </li>
           ))}
         </ul>

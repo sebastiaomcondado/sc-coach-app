@@ -2,7 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { WorkoutBuilder } from "@/components/WorkoutBuilder";
 
-export default async function NewWorkoutPage() {
+export default async function NewWorkoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ template?: string }>;
+}) {
+  const { template } = await searchParams;
   const profile = await getCurrentProfile();
   const supabase = await createClient();
 
@@ -23,7 +28,12 @@ export default async function NewWorkoutPage() {
   return (
     <div>
       <h1 className="mb-6 text-xl font-semibold text-white">Build & assign a workout</h1>
-      <WorkoutBuilder athletes={athletes} exercises={exercises ?? []} templates={templates ?? []} />
+      <WorkoutBuilder
+        athletes={athletes}
+        exercises={exercises ?? []}
+        templates={templates ?? []}
+        initialTemplateId={template}
+      />
     </div>
   );
 }
