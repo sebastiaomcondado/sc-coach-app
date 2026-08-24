@@ -45,19 +45,24 @@ export default async function CyclesPage() {
       ) : (
         <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
           {cycles.map((c) => (
-            <li key={c.id} className="flex items-center justify-between px-4 py-3">
-              <div>
-                <span className="text-white">{c.name}</span>
-                {(c.start_date || c.end_date) && (
-                  <span className="ml-2 text-sm text-neutral-500">
-                    {c.start_date ?? "…"} – {c.end_date ?? "…"}
-                  </span>
-                )}
-              </div>
-              <span className="text-sm text-neutral-500">
-                {templateCountByCycle.get(c.id) ?? 0} template
-                {(templateCountByCycle.get(c.id) ?? 0) === 1 ? "" : "s"}
-              </span>
+            <li key={c.id}>
+              <Link
+                href={`/coach/cycles/${c.id}`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900"
+              >
+                <div>
+                  <span className="text-white">{c.name}</span>
+                  {(c.start_date || c.end_date) && (
+                    <span className="ml-2 text-sm text-neutral-500">
+                      {c.start_date ?? "…"} – {c.end_date ?? "…"}
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm text-neutral-500">
+                  {templateCountByCycle.get(c.id) ?? 0} template
+                  {(templateCountByCycle.get(c.id) ?? 0) === 1 ? "" : "s"}
+                </span>
+              </Link>
             </li>
           ))}
         </ul>
