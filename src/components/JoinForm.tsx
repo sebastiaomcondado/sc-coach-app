@@ -86,8 +86,9 @@ export function JoinForm({
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-neutral-300">Group (optional)</label>
+        <label className="mb-1 block text-sm text-neutral-300">Group</label>
         <input
+          required
           value={squad}
           onChange={(e) => setSquad(e.target.value)}
           placeholder="e.g. Forwards"

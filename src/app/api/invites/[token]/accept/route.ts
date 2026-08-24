@@ -5,8 +5,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const { token } = await params;
   const { fullName, email, password, squad } = await request.json();
 
-  if (!fullName || !email || !password) {
-    return NextResponse.json({ error: "Missing fullName, email, or password." }, { status: 400 });
+  if (!fullName || !email || !password || !squad) {
+    return NextResponse.json({ error: "Missing fullName, email, password, or squad." }, { status: 400 });
   }
   if (password.length < 6) {
     return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
@@ -54,9 +54,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: linkError.message }, { status: 400 });
   }
 
-  if (squad) {
-    await admin.from("profiles").update({ squad }).eq("id", athleteId);
-  }
+  await admin.from("profiles").update({ squad }).eq("id", athleteId);
 
   if (!invite.is_reusable) {
     await admin.from("athlete_invites").update({ used_at: new Date().toISOString() }).eq("token", token);
