@@ -60,5 +60,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     await admin.from("athlete_invites").update({ used_at: new Date().toISOString() }).eq("token", token);
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, athleteId });
 }
