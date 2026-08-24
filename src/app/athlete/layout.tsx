@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
+import { getMostRecentMonday } from "@/lib/weekdays";
 import { NavBar } from "@/components/NavBar";
 
 export default async function AthleteLayout({ children }: { children: React.ReactNode }) {
@@ -7,6 +10,18 @@ export default async function AthleteLayout({ children }: { children: React.Reac
 
   if (!profile) redirect("/login");
   if (profile.role !== "athlete") redirect("/coach");
+
+  const supabase = await createClient();
+  const monday = getMostRecentMonday();
+  const { data: weekMetrics } = await supabase
+    .from("body_metrics")
+    .select("id")
+    .eq("athlete_id", profile.id)
+    .gte("logged_date", monday)
+    .not("bodyweight_kg", "is", null)
+    .limit(1);
+
+  const needsWeighIn = (weekMetrics ?? []).length === 0;
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -20,6 +35,14 @@ export default async function AthleteLayout({ children }: { children: React.Reac
           { href: "/athlete/profile", label: "My profile" },
         ]}
       />
+      {needsWeighIn && (
+        <div className="border-b border-amber-900/50 bg-amber-950/50 px-4 py-2 text-center text-sm text-amber-200">
+          Log your weight for this week —{" "}
+          <Link href="/athlete/metrics" className="underline hover:text-amber-100">
+            do it now
+          </Link>
+        </div>
+      )}
       <main className="mx-auto max-w-3xl px-4 py-8">{children}</main>
     </div>
   );
