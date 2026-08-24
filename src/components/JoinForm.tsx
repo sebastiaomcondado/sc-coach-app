@@ -4,11 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export function JoinForm({ token, initialFullName }: { token: string; initialFullName: string }) {
+export function JoinForm({
+  token,
+  initialFullName,
+  squadSuggestions = ["Forwards", "Backs"],
+}: {
+  token: string;
+  initialFullName: string;
+  squadSuggestions?: string[];
+}) {
   const router = useRouter();
   const [fullName, setFullName] = useState(initialFullName);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [squad, setSquad] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +29,7 @@ export function JoinForm({ token, initialFullName }: { token: string; initialFul
     const res = await fetch(`/api/invites/${token}/accept`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName, email, password }),
+      body: JSON.stringify({ fullName, email, password, squad }),
     });
     const body = await res.json();
 
@@ -75,6 +84,21 @@ export function JoinForm({ token, initialFullName }: { token: string; initialFul
           onChange={(e) => setPassword(e.target.value)}
           className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
         />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm text-neutral-300">Group (optional)</label>
+        <input
+          value={squad}
+          onChange={(e) => setSquad(e.target.value)}
+          placeholder="e.g. Forwards"
+          list="squad-suggestions"
+          className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
+        />
+        <datalist id="squad-suggestions">
+          {squadSuggestions.map((s) => (
+            <option key={s} value={s} />
+          ))}
+        </datalist>
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}

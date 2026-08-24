@@ -13,6 +13,24 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
 
   const coach = invite ? (Array.isArray(invite.coach) ? invite.coach[0] : invite.coach) : null;
 
+  let squadSuggestions = ["Forwards", "Backs"];
+  if (invite) {
+    const { data: rosterRows } = await admin
+      .from("coach_athletes")
+      .select("athlete:profiles!coach_athletes_athlete_id_fkey(squad)")
+      .eq("coach_id", invite.coach_id);
+
+    squadSuggestions = [
+      ...new Set(
+        [
+          ...(rosterRows ?? []).map((r) => r.athlete?.squad).filter((s): s is string => !!s),
+          "Forwards",
+          "Backs",
+        ]
+      ),
+    ];
+  }
+
   const invalidReason = !invite
     ? "This invite link isn't valid."
     : !invite.is_reusable && invite.used_at
@@ -35,7 +53,11 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
             <p className="mb-6 text-sm text-neutral-400">
               Set up your account to see your workouts and log your training.
             </p>
-            <JoinForm token={token} initialFullName={invite!.full_name ?? ""} />
+            <JoinForm
+              token={token}
+              initialFullName={invite!.full_name ?? ""}
+              squadSuggestions={squadSuggestions}
+            />
           </>
         )}
       </div>

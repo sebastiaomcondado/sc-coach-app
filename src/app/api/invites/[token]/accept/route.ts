@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const { fullName, email, password } = await request.json();
+  const { fullName, email, password, squad } = await request.json();
 
   if (!fullName || !email || !password) {
     return NextResponse.json({ error: "Missing fullName, email, or password." }, { status: 400 });
@@ -52,6 +52,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   if (linkError) {
     return NextResponse.json({ error: linkError.message }, { status: 400 });
+  }
+
+  if (squad) {
+    await admin.from("profiles").update({ squad }).eq("id", athleteId);
   }
 
   if (!invite.is_reusable) {
