@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
 import { getAvatarUrl } from "@/lib/avatar";
 import { buildProgressSeries, buildPersonalRecords } from "@/lib/progress";
 import { ProgressChart } from "@/components/ProgressChart";
 import { PersonalRecordsTable } from "@/components/PersonalRecordsTable";
 import { MetricsChart } from "@/components/MetricsChart";
+import { CycleFilterSelect } from "@/components/CycleFilterSelect";
 
 function calculateAge(dateOfBirth: string | null): number | null {
   if (!dateOfBirth) return null;
@@ -19,10 +21,14 @@ function calculateAge(dateOfBirth: string | null): number | null {
 
 export default async function AthleteDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ athleteId: string }>;
+  searchParams: Promise<{ cycle?: string }>;
 }) {
   const { athleteId } = await params;
+  const { cycle } = await searchParams;
+  const profile = await getCurrentProfile();
   const supabase = await createClient();
 
   const { data: athlete } = await supabase
@@ -33,10 +39,11 @@ export default async function AthleteDetailPage({
 
   if (!athlete) notFound();
 
-  const [{ data: workouts }, { data: loggedSets }, { data: metrics }, photoUrl] = await Promise.all([
+  const [{ data: workouts }, { data: loggedSets }, { data: metrics }, photoUrl, { data: cycles }] =
+    await Promise.all([
     supabase
       .from("workouts")
-      .select("id, title, scheduled_date")
+      .select("id, title, scheduled_date, cycle_id, cycle:training_cycles(name)")
       .eq("athlete_id", athleteId)
       .order("scheduled_date", { ascending: false }),
     supabase
@@ -47,7 +54,10 @@ export default async function AthleteDetailPage({
       .eq("athlete_id", athleteId),
     supabase.from("body_metrics").select("*").eq("athlete_id", athleteId).order("logged_date"),
     getAvatarUrl(supabase, athlete.photo_path),
+    supabase.from("training_cycles").select("id, name").eq("coach_id", profile!.id).order("name"),
   ]);
+
+  const filteredWorkouts = cycle ? (workouts ?? []).filter((w) => w.cycle_id === cycle) : workouts ?? [];
 
   const series = buildProgressSeries(
     (loggedSets ?? []).map((row) => ({
@@ -140,17 +150,28 @@ export default async function AthleteDetailPage({
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-400">Workouts</h2>
-        {!workouts || workouts.length === 0 ? (
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-neutral-400">Workouts</h2>
+          <CycleFilterSelect cycles={cycles ?? []} />
+        </div>
+        {filteredWorkouts.length === 0 ? (
           <p className="text-neutral-400">No workouts assigned yet.</p>
         ) : (
           <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
-            {workouts.map((w) => (
+            {filteredWorkouts.map((w) => {
+              const workoutCycle = Array.isArray(w.cycle) ? w.cycle[0] : w.cycle;
+              return (
               <li key={w.id} className="flex items-center justify-between px-4 py-3">
-                <span className="text-white">{w.title}</span>
+                <div>
+                  <span className="text-white">{w.title}</span>
+                  {workoutCycle?.name && (
+                    <span className="ml-2 text-xs text-neutral-500">{workoutCycle.name}</span>
+                  )}
+                </div>
                 <span className="text-sm text-neutral-500">{w.scheduled_date}</span>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </section>

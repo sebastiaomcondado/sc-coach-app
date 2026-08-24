@@ -11,14 +11,20 @@ export default async function NewWorkoutPage({
   const profile = await getCurrentProfile();
   const supabase = await createClient();
 
-  const [{ data: athleteRows }, { data: exercises }, { data: templates }] = await Promise.all([
-    supabase
-      .from("coach_athletes")
-      .select("athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name)")
-      .eq("coach_id", profile!.id),
-    supabase.from("exercises").select("id, name, category, video_url").order("name"),
-    supabase.from("program_templates").select("id, name").eq("coach_id", profile!.id).order("name"),
-  ]);
+  const [{ data: athleteRows }, { data: exercises }, { data: templates }, { data: cycles }] =
+    await Promise.all([
+      supabase
+        .from("coach_athletes")
+        .select("athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name)")
+        .eq("coach_id", profile!.id),
+      supabase.from("exercises").select("id, name, category, video_url").order("name"),
+      supabase
+        .from("program_templates")
+        .select("id, name, cycle_id")
+        .eq("coach_id", profile!.id)
+        .order("name"),
+      supabase.from("training_cycles").select("id, name").eq("coach_id", profile!.id).order("name"),
+    ]);
 
   const athletes = (athleteRows ?? [])
     .map((r) => r.athlete)
@@ -32,6 +38,7 @@ export default async function NewWorkoutPage({
         athletes={athletes}
         exercises={exercises ?? []}
         templates={templates ?? []}
+        cycles={cycles ?? []}
         initialTemplateId={template}
       />
     </div>

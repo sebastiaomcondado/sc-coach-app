@@ -8,7 +8,7 @@ function extractSheetId(url: string): string | null {
 }
 
 export async function POST(request: Request) {
-  const { templateName, notes, sheetUrl, tabName } = await request.json();
+  const { templateName, notes, sheetUrl, tabName, cycleId } = await request.json();
 
   if (!templateName || !sheetUrl || !tabName) {
     return NextResponse.json(
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
   const { data: template, error: templateError } = await supabase
     .from("program_templates")
-    .insert({ coach_id: caller.id, name: templateName, notes: notes || null })
+    .insert({ coach_id: caller.id, name: templateName, notes: notes || null, cycle_id: cycleId || null })
     .select()
     .single();
 

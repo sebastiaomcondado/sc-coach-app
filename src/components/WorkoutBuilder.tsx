@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 
 type Athlete = { id: string; full_name: string };
 type Exercise = { id: string; name: string; category: string | null; video_url: string | null };
-type Template = { id: string; name: string };
+type Template = { id: string; name: string; cycle_id: string | null };
+type Cycle = { id: string; name: string };
 
 type PhaseOption = { label: string; sets: string; reps: string; rpe: string; rest: string };
 
@@ -44,11 +45,13 @@ export function WorkoutBuilder({
   athletes,
   exercises,
   templates,
+  cycles,
   initialTemplateId,
 }: {
   athletes: Athlete[];
   exercises: Exercise[];
   templates: Template[];
+  cycles: Cycle[];
   initialTemplateId?: string;
 }) {
   const router = useRouter();
@@ -58,17 +61,24 @@ export function WorkoutBuilder({
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<Row[]>(exercises.length ? [emptyRow(exercises[0].id)] : []);
   const [templateId, setTemplateId] = useState("");
+  const [cycleId, setCycleId] = useState("");
   const [templateLoading, setTemplateLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (initialTemplateId) applyTemplate(initialTemplateId);
+    // Only re-run when the deep-linked template id changes, not on every
+    // applyTemplate identity change (it closes over `templates`/`rows`).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTemplateId]);
 
   async function applyTemplate(id: string) {
     setTemplateId(id);
     if (!id) return;
+
+    const template = templates.find((t) => t.id === id);
+    if (template?.cycle_id) setCycleId(template.cycle_id);
 
     setTemplateLoading(true);
     const supabase = createClient();
@@ -197,6 +207,7 @@ export function WorkoutBuilder({
           title,
           notes: notes || null,
           scheduled_date: scheduledDate,
+          cycle_id: cycleId || null,
         })
         .select()
         .single();
@@ -302,24 +313,43 @@ export function WorkoutBuilder({
         />
       </div>
 
-      {templates.length > 0 && (
-        <div>
-          <label className="mb-1 block text-sm text-neutral-300">Start from template (optional)</label>
-          <select
-            value={templateId}
-            onChange={(e) => applyTemplate(e.target.value)}
-            disabled={templateLoading}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
-          >
-            <option value="">— None —</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      <div className="flex flex-wrap gap-4">
+        {templates.length > 0 && (
+          <div>
+            <label className="mb-1 block text-sm text-neutral-300">Start from template (optional)</label>
+            <select
+              value={templateId}
+              onChange={(e) => applyTemplate(e.target.value)}
+              disabled={templateLoading}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
+            >
+              <option value="">— None —</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {cycles.length > 0 && (
+          <div>
+            <label className="mb-1 block text-sm text-neutral-300">Cycle (optional)</label>
+            <select
+              value={cycleId}
+              onChange={(e) => setCycleId(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
+            >
+              <option value="">— None —</option>
+              {cycles.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       <div>
         <div className="mb-2 flex items-center justify-between">

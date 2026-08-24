@@ -113,6 +113,7 @@ export interface Database {
           notes: string | null;
           scheduled_date: string;
           created_at: string;
+          cycle_id: string | null;
         };
         Insert: {
           id?: string;
@@ -122,11 +123,13 @@ export interface Database {
           notes?: string | null;
           scheduled_date?: string;
           created_at?: string;
+          cycle_id?: string | null;
         };
         Update: {
           title?: string;
           notes?: string | null;
           scheduled_date?: string;
+          cycle_id?: string | null;
         };
         Relationships: [
           {
@@ -141,6 +144,13 @@ export interface Database {
             columns: ["athlete_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "workouts_cycle_id_fkey";
+            columns: ["cycle_id"];
+            isOneToOne: false;
+            referencedRelation: "training_cycles";
             referencedColumns: ["id"];
           },
         ];
@@ -325,6 +335,7 @@ export interface Database {
           name: string;
           notes: string | null;
           created_at: string;
+          cycle_id: string | null;
         };
         Insert: {
           id?: string;
@@ -332,14 +343,58 @@ export interface Database {
           name: string;
           notes?: string | null;
           created_at?: string;
+          cycle_id?: string | null;
         };
         Update: {
           name?: string;
           notes?: string | null;
+          cycle_id?: string | null;
         };
         Relationships: [
           {
             foreignKeyName: "program_templates_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "program_templates_cycle_id_fkey";
+            columns: ["cycle_id"];
+            isOneToOne: false;
+            referencedRelation: "training_cycles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      training_cycles: {
+        Row: {
+          id: string;
+          coach_id: string;
+          name: string;
+          start_date: string | null;
+          end_date: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          name: string;
+          start_date?: string | null;
+          end_date?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          start_date?: string | null;
+          end_date?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "training_cycles_coach_id_fkey";
             columns: ["coach_id"];
             isOneToOne: false;
             referencedRelation: "profiles";

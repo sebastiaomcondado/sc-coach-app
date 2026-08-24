@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Exercise = { id: string; name: string; category: string | null; video_url: string | null };
+type Cycle = { id: string; name: string };
 
 type Phase = {
   label: string;
@@ -38,9 +39,18 @@ function emptyRow(defaultExerciseId: string): Row {
   };
 }
 
-export function TemplateBuilder({ exercises }: { exercises: Exercise[] }) {
+export function TemplateBuilder({
+  exercises,
+  cycles,
+  initialCycleId,
+}: {
+  exercises: Exercise[];
+  cycles: Cycle[];
+  initialCycleId?: string;
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [cycleId, setCycleId] = useState(initialCycleId ?? "");
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<Row[]>(exercises.length ? [emptyRow(exercises[0].id)] : []);
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +116,7 @@ export function TemplateBuilder({ exercises }: { exercises: Exercise[] }) {
 
     const { data: template, error: templateError } = await supabase
       .from("program_templates")
-      .insert({ coach_id: user.id, name, notes: notes || null })
+      .insert({ coach_id: user.id, name, notes: notes || null, cycle_id: cycleId || null })
       .select()
       .single();
 
@@ -182,6 +192,24 @@ export function TemplateBuilder({ exercises }: { exercises: Exercise[] }) {
           className="w-full max-w-md rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
         />
       </div>
+
+      {cycles.length > 0 && (
+        <div>
+          <label className="mb-1 block text-sm text-neutral-300">Cycle (optional)</label>
+          <select
+            value={cycleId}
+            onChange={(e) => setCycleId(e.target.value)}
+            className="w-full max-w-md rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
+          >
+            <option value="">— None —</option>
+            {cycles.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="mb-1 block text-sm text-neutral-300">Notes (optional)</label>
