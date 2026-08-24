@@ -3,7 +3,10 @@ import { TemplateBuilder } from "@/components/TemplateBuilder";
 
 export default async function NewTemplatePage() {
   const supabase = await createClient();
-  const { data: exercises } = await supabase.from("exercises").select("id, name, category").order("name");
+  const { data: exercises } = await supabase
+    .from("exercises")
+    .select("id, name, category, video_url")
+    .order("name");
 
   return (
     <div>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Athlete = { id: string; full_name: string };
-type Exercise = { id: string; name: string; category: string | null };
+type Exercise = { id: string; name: string; category: string | null; video_url: string | null };
 type Template = { id: string; name: string };
 
 type PhaseOption = { label: string; sets: string; reps: string; rpe: string; rest: string };
@@ -357,17 +357,29 @@ export function WorkoutBuilder({
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
-                <select
-                  value={row.exerciseId}
-                  onChange={(e) => updateRow(index, { exerciseId: e.target.value })}
-                  className="col-span-2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white sm:col-span-2"
-                >
-                  {exercises.map((ex) => (
-                    <option key={ex.id} value={ex.id}>
-                      {ex.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="col-span-2 flex items-center gap-2 sm:col-span-2">
+                  <select
+                    value={row.exerciseId}
+                    onChange={(e) => updateRow(index, { exerciseId: e.target.value })}
+                    className="w-full min-w-0 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                  >
+                    {exercises.map((ex) => (
+                      <option key={ex.id} value={ex.id}>
+                        {ex.name}
+                      </option>
+                    ))}
+                  </select>
+                  {exercises.find((ex) => ex.id === row.exerciseId)?.video_url && (
+                    <a
+                      href={exercises.find((ex) => ex.id === row.exerciseId)!.video_url!}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 text-xs text-emerald-400 hover:underline"
+                    >
+                      ▶
+                    </a>
+                  )}
+                </div>
                 <input
                   placeholder="Sets"
                   value={row.sets}

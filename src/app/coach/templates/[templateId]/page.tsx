@@ -20,7 +20,7 @@ export default async function TemplateDetailPage({
 
   const { data: exercises } = await supabase
     .from("template_exercises")
-    .select("id, section, superset_group, notes, position, exercise:exercises(name)")
+    .select("id, section, superset_group, notes, position, exercise:exercises(name, video_url)")
     .eq("template_id", templateId)
     .order("position");
 
@@ -65,6 +65,16 @@ export default async function TemplateDetailPage({
                       <span className="mr-1.5 text-neutral-500">{ex.superset_group}.</span>
                     )}
                     {exercise?.name ?? "Exercise"}
+                    {exercise?.video_url && (
+                      <a
+                        href={exercise.video_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-2 text-xs font-normal text-emerald-400 hover:underline"
+                      >
+                        ▶ Watch
+                      </a>
+                    )}
                   </h3>
                   {ex.section && <span className="text-xs text-neutral-500">{ex.section}</span>}
                 </div>

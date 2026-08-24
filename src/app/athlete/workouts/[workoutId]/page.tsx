@@ -25,7 +25,7 @@ export default async function AthleteWorkoutPage({
   const { data: workoutExercises } = await supabase
     .from("workout_exercises")
     .select(
-      "id, prescribed_sets, prescribed_reps, prescribed_weight, prescribed_rpe, prescribed_rest, section, superset_group, notes, position, exercise:exercises(name)"
+      "id, prescribed_sets, prescribed_reps, prescribed_weight, prescribed_rpe, prescribed_rest, section, superset_group, notes, position, exercise:exercises(name, video_url)"
     )
     .eq("workout_id", workoutId)
     .order("position");
@@ -59,6 +59,7 @@ export default async function AthleteWorkoutPage({
     return {
       workoutExerciseId: we.id,
       exerciseName,
+      videoUrl: exercise?.video_url ?? null,
       section: we.section,
       supersetGroup: we.superset_group,
       prescribedSets: we.prescribed_sets,

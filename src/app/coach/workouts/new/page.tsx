@@ -16,7 +16,7 @@ export default async function NewWorkoutPage({
       .from("coach_athletes")
       .select("athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name)")
       .eq("coach_id", profile!.id),
-    supabase.from("exercises").select("id, name, category").order("name"),
+    supabase.from("exercises").select("id, name, category, video_url").order("name"),
     supabase.from("program_templates").select("id, name").eq("coach_id", profile!.id).order("name"),
   ]);
 

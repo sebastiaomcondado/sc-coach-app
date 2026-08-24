@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 export type ExerciseBlock = {
   workoutExerciseId: string;
   exerciseName: string;
+  videoUrl: string | null;
   section: string | null;
   supersetGroup: string | null;
   prescribedSets: number | null;
@@ -122,6 +123,16 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
                 <span className="mr-1.5 text-neutral-500">{block.supersetGroup}.</span>
               )}
               {block.exerciseName}
+              {block.videoUrl && (
+                <a
+                  href={block.videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ml-2 text-xs font-normal text-emerald-400 hover:underline"
+                >
+                  ▶ Watch
+                </a>
+              )}
             </h3>
             <span className="text-xs text-neutral-500">
               Target: {block.prescribedSets ?? "–"} x {block.prescribedReps ?? "–"}
