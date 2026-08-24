@@ -63,16 +63,16 @@ export default async function CycleDetailPage({
       ) : (
         <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
           {templates.map((t) => (
-            <li key={t.id}>
+            <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3">
+              <Link href={`/coach/templates/${t.id}`} className="min-w-0 flex-1 hover:underline">
+                <span className="text-white">{t.name}</span>
+                {t.notes && <p className="mt-1 text-sm text-neutral-500">{t.notes}</p>}
+              </Link>
               <Link
-                href={`/coach/templates/${t.id}`}
-                className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900"
+                href={`/coach/workouts/new?template=${t.id}`}
+                className="shrink-0 rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
               >
-                <div>
-                  <span className="text-white">{t.name}</span>
-                  {t.notes && <p className="mt-1 text-sm text-neutral-500">{t.notes}</p>}
-                </div>
-                <span className="text-sm text-neutral-500">View →</span>
+                Assign
               </Link>
             </li>
           ))}
