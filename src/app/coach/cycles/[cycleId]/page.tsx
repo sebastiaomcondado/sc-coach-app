@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { AssignCycleToGroup } from "@/components/AssignCycleToGroup";
 
 export default async function CycleDetailPage({
   params,
@@ -8,6 +10,7 @@ export default async function CycleDetailPage({
   params: Promise<{ cycleId: string }>;
 }) {
   const { cycleId } = await params;
+  const profile = await getCurrentProfile();
   const supabase = await createClient();
 
   const { data: cycle } = await supabase
@@ -23,6 +26,15 @@ export default async function CycleDetailPage({
     .select("id, name, notes")
     .eq("cycle_id", cycleId)
     .order("name");
+
+  const { data: rosterRows } = await supabase
+    .from("coach_athletes")
+    .select("athlete:profiles!coach_athletes_athlete_id_fkey(squad)")
+    .eq("coach_id", profile!.id);
+
+  const groups = [
+    ...new Set((rosterRows ?? []).map((r) => r.athlete?.squad).filter((s): s is string => !!s)),
+  ].sort();
 
   return (
     <div>
@@ -46,6 +58,10 @@ export default async function CycleDetailPage({
         >
           Edit cycle
         </Link>
+      </div>
+
+      <div className="mb-6">
+        <AssignCycleToGroup cycleId={cycle.id} groups={groups} />
       </div>
 
       <div className="mb-3 flex items-center justify-between">

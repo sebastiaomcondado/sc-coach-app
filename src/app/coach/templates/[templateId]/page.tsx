@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { WEEKDAY_NAMES } from "@/lib/weekdays";
 
 export default async function TemplateDetailPage({
   params,
@@ -12,7 +13,7 @@ export default async function TemplateDetailPage({
 
   const { data: template } = await supabase
     .from("program_templates")
-    .select("id, name, notes")
+    .select("id, name, notes, day_of_week")
     .eq("id", templateId)
     .single();
 
@@ -39,14 +40,25 @@ export default async function TemplateDetailPage({
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white">{template.name}</h1>
+          {template.day_of_week !== null && (
+            <p className="mt-1 text-sm text-neutral-400">Scheduled: {WEEKDAY_NAMES[template.day_of_week]}</p>
+          )}
           {template.notes && <p className="mt-1 text-sm text-neutral-400">{template.notes}</p>}
         </div>
-        <Link
-          href={`/coach/workouts/new?template=${template.id}`}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-        >
-          Assign to athlete(s)
-        </Link>
+        <div className="flex shrink-0 gap-2">
+          <Link
+            href={`/coach/templates/${template.id}/edit`}
+            className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
+          >
+            Edit
+          </Link>
+          <Link
+            href={`/coach/workouts/new?template=${template.id}`}
+            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          >
+            Assign to athlete(s)
+          </Link>
+        </div>
       </div>
 
       {!exercises || exercises.length === 0 ? (

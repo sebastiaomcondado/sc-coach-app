@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { WEEKDAY_NAMES } from "@/lib/weekdays";
 
 type Exercise = { id: string; name: string; category: string | null; video_url: string | null };
 type Cycle = { id: string; name: string };
@@ -13,6 +14,8 @@ type Phase = {
   reps: string;
   rpe: string;
   rest: string;
+  startWeek: string;
+  endWeek: string;
 };
 
 type Row = {
@@ -25,7 +28,7 @@ type Row = {
 };
 
 function emptyPhase(): Phase {
-  return { label: "", sets: "3", reps: "5", rpe: "", rest: "" };
+  return { label: "", sets: "3", reps: "5", rpe: "", rest: "", startWeek: "", endWeek: "" };
 }
 
 function emptyRow(defaultExerciseId: string): Row {
@@ -51,6 +54,7 @@ export function TemplateBuilder({
   const router = useRouter();
   const [name, setName] = useState("");
   const [cycleId, setCycleId] = useState(initialCycleId ?? "");
+  const [dayOfWeek, setDayOfWeek] = useState("");
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<Row[]>(exercises.length ? [emptyRow(exercises[0].id)] : []);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +120,13 @@ export function TemplateBuilder({
 
     const { data: template, error: templateError } = await supabase
       .from("program_templates")
-      .insert({ coach_id: user.id, name, notes: notes || null, cycle_id: cycleId || null })
+      .insert({
+        coach_id: user.id,
+        name,
+        notes: notes || null,
+        cycle_id: cycleId || null,
+        day_of_week: dayOfWeek === "" ? null : Number(dayOfWeek),
+      })
       .select()
       .single();
 
@@ -156,6 +166,8 @@ export function TemplateBuilder({
         reps: phase.reps || null,
         rpe: phase.rpe ? Number(phase.rpe) : null,
         rest: phase.rest || null,
+        start_week: phase.startWeek ? Number(phase.startWeek) : null,
+        end_week: phase.endWeek ? Number(phase.endWeek) : null,
       }))
     );
 
@@ -193,23 +205,40 @@ export function TemplateBuilder({
         />
       </div>
 
-      {cycles.length > 0 && (
+      <div className="flex flex-wrap gap-4">
+        {cycles.length > 0 && (
+          <div>
+            <label className="mb-1 block text-sm text-neutral-300">Cycle (optional)</label>
+            <select
+              value={cycleId}
+              onChange={(e) => setCycleId(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
+            >
+              <option value="">— None —</option>
+              {cycles.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
-          <label className="mb-1 block text-sm text-neutral-300">Cycle (optional)</label>
+          <label className="mb-1 block text-sm text-neutral-300">Day of week (optional)</label>
           <select
-            value={cycleId}
-            onChange={(e) => setCycleId(e.target.value)}
-            className="w-full max-w-md rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
+            value={dayOfWeek}
+            onChange={(e) => setDayOfWeek(e.target.value)}
+            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
           >
             <option value="">— None —</option>
-            {cycles.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+            {WEEKDAY_NAMES.map((name, index) => (
+              <option key={name} value={index}>
+                {name}
               </option>
             ))}
           </select>
         </div>
-      )}
+      </div>
 
       <div>
         <label className="mb-1 block text-sm text-neutral-300">Notes (optional)</label>
@@ -291,15 +320,17 @@ export function TemplateBuilder({
               </div>
 
               <div className="mt-3 space-y-2">
-                <div className="grid grid-cols-5 gap-2 text-xs text-neutral-500">
+                <div className="grid grid-cols-7 gap-2 text-xs text-neutral-500">
                   <span>Phase label</span>
                   <span>Sets</span>
                   <span>Reps</span>
                   <span>RPE</span>
                   <span>Rest</span>
+                  <span>Start wk</span>
+                  <span>End wk</span>
                 </div>
                 {row.phases.map((phase, phaseIndex) => (
-                  <div key={phaseIndex} className="grid grid-cols-5 gap-2">
+                  <div key={phaseIndex} className="grid grid-cols-7 gap-2">
                     <input
                       placeholder="e.g. Week 1-3"
                       value={phase.label}
@@ -321,10 +352,22 @@ export function TemplateBuilder({
                       onChange={(e) => updatePhase(index, phaseIndex, { rpe: e.target.value })}
                       className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
                     />
+                    <input
+                      value={phase.rest}
+                      onChange={(e) => updatePhase(index, phaseIndex, { rest: e.target.value })}
+                      className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                    />
+                    <input
+                      placeholder="e.g. 1"
+                      value={phase.startWeek}
+                      onChange={(e) => updatePhase(index, phaseIndex, { startWeek: e.target.value })}
+                      className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                    />
                     <div className="flex gap-2">
                       <input
-                        value={phase.rest}
-                        onChange={(e) => updatePhase(index, phaseIndex, { rest: e.target.value })}
+                        placeholder="e.g. 3"
+                        value={phase.endWeek}
+                        onChange={(e) => updatePhase(index, phaseIndex, { endWeek: e.target.value })}
                         className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
                       />
                       {row.phases.length > 1 && (

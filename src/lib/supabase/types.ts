@@ -336,6 +336,7 @@ export interface Database {
           notes: string | null;
           created_at: string;
           cycle_id: string | null;
+          day_of_week: number | null;
         };
         Insert: {
           id?: string;
@@ -344,11 +345,13 @@ export interface Database {
           notes?: string | null;
           created_at?: string;
           cycle_id?: string | null;
+          day_of_week?: number | null;
         };
         Update: {
           name?: string;
           notes?: string | null;
           cycle_id?: string | null;
+          day_of_week?: number | null;
         };
         Relationships: [
           {
@@ -466,6 +469,8 @@ export interface Database {
           reps: string | null;
           rpe: number | null;
           rest: string | null;
+          start_week: number | null;
+          end_week: number | null;
         };
         Insert: {
           id?: string;
@@ -476,6 +481,8 @@ export interface Database {
           reps?: string | null;
           rpe?: number | null;
           rest?: string | null;
+          start_week?: number | null;
+          end_week?: number | null;
         };
         Update: {
           label?: string | null;
@@ -484,6 +491,8 @@ export interface Database {
           reps?: string | null;
           rpe?: number | null;
           rest?: string | null;
+          start_week?: number | null;
+          end_week?: number | null;
         };
         Relationships: [
           {

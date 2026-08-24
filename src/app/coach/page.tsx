@@ -26,6 +26,14 @@ export default async function RosterPage() {
     .filter((a): a is RosterAthlete => !!a)
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
+  const groups = new Map<string, RosterAthlete[]>();
+  for (const athlete of athletes) {
+    const key = athlete.squad ?? "Unassigned";
+    groups.set(key, [...(groups.get(key) ?? []), athlete]);
+  }
+  const orderedGroups = [...groups.keys()].filter((k) => k !== "Unassigned").sort();
+  if (groups.has("Unassigned")) orderedGroups.push("Unassigned");
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -47,30 +55,35 @@ export default async function RosterPage() {
           .
         </p>
       ) : (
-        <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
-          {athletes.map((athlete) => (
-            <li key={athlete.id}>
-              <Link
-                href={`/coach/athletes/${athlete.id}`}
-                className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900"
-              >
-                <div>
-                  <span className="text-white">{athlete.full_name}</span>
-                  <span className="ml-2 text-sm text-neutral-500">
-                    {[
-                      athlete.position,
-                      athlete.jersey_number ? `#${athlete.jersey_number}` : null,
-                      athlete.squad,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
-                </div>
-                <span className="text-sm text-neutral-500">View progress →</span>
-              </Link>
-            </li>
+        <div className="space-y-6">
+          {orderedGroups.map((group) => (
+            <div key={group}>
+              <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-neutral-400">
+                {group}
+              </h2>
+              <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
+                {groups.get(group)!.map((athlete) => (
+                  <li key={athlete.id}>
+                    <Link
+                      href={`/coach/athletes/${athlete.id}`}
+                      className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900"
+                    >
+                      <div>
+                        <span className="text-white">{athlete.full_name}</span>
+                        <span className="ml-2 text-sm text-neutral-500">
+                          {[athlete.position, athlete.jersey_number ? `#${athlete.jersey_number}` : null]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                      </div>
+                      <span className="text-sm text-neutral-500">View progress →</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

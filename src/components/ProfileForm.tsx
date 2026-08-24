@@ -33,10 +33,12 @@ export function ProfileForm({
   athleteId,
   initial,
   redirectTo,
+  squadSuggestions = ["Forwards", "Backs"],
 }: {
   athleteId: string;
   initial: ProfileFormValues;
   redirectTo: string;
+  squadSuggestions?: string[];
 }) {
   const router = useRouter();
   const [fullName, setFullName] = useState(initial.fullName);
@@ -190,13 +192,19 @@ export function ProfileForm({
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm text-neutral-300">Squad</label>
+          <label className="mb-1 block text-sm text-neutral-300">Group</label>
           <input
             value={squad}
             onChange={(e) => setSquad(e.target.value)}
-            placeholder="e.g. First XV"
+            placeholder="e.g. Forwards"
+            list="squad-suggestions"
             className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
           />
+          <datalist id="squad-suggestions">
+            {squadSuggestions.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
         </div>
       </div>
 
