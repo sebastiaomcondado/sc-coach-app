@@ -33,7 +33,7 @@ export default async function AthleteDetailPage({
 
   const { data: athlete } = await supabase
     .from("profiles")
-    .select("*, squad_group:squad_groups(name)")
+    .select("*, squad_group:squad_groups!profiles_squad_group_id_fkey(name)")
     .eq("id", athleteId)
     .single();
 

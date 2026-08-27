@@ -9,7 +9,7 @@ export default async function RosterPage() {
   const { data: rows } = await supabase
     .from("coach_athletes")
     .select(
-      "athlete_id, athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name, position, jersey_number, squad_group:squad_groups(name))"
+      "athlete_id, athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name, position, jersey_number, squad_group:squad_groups!profiles_squad_group_id_fkey(name))"
     )
     .eq("coach_id", profile!.id);
 
