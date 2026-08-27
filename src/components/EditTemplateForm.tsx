@@ -345,6 +345,12 @@ export function EditTemplateForm({
                   </button>
                 </div>
               </div>
+              <input
+                placeholder="Notes (optional)"
+                value={row.notes}
+                onChange={(e) => updateRow(index, { notes: e.target.value })}
+                className="mt-2 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+              />
 
               <div className="mt-3 space-y-2">
                 <div className="grid grid-cols-7 gap-2 text-xs text-neutral-500">
