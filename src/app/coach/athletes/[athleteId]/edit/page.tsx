@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { getAvatarUrl } from "@/lib/avatar";
 import { ProfileForm } from "@/components/ProfileForm";
+import { DeleteAthleteButton } from "@/components/DeleteAthleteButton";
 
 export default async function EditAthletePage({
   params,
@@ -24,20 +25,11 @@ export default async function EditAthletePage({
 
   const photoUrl = await getAvatarUrl(supabase, athlete.photo_path);
 
-  const { data: rosterRows } = await supabase
-    .from("coach_athletes")
-    .select("athlete:profiles!coach_athletes_athlete_id_fkey(squad)")
-    .eq("coach_id", profile!.id);
-
-  const squadSuggestions = [
-    ...new Set(
-      [
-        ...(rosterRows ?? []).map((r) => r.athlete?.squad).filter((s): s is string => !!s),
-        "Forwards",
-        "Backs",
-      ]
-    ),
-  ];
+  const { data: groups } = await supabase
+    .from("squad_groups")
+    .select("id, name")
+    .eq("coach_id", profile!.id)
+    .order("name");
 
   return (
     <div>
@@ -51,7 +43,8 @@ export default async function EditAthletePage({
       <ProfileForm
         athleteId={athleteId}
         redirectTo={`/coach/athletes/${athleteId}`}
-        squadSuggestions={squadSuggestions}
+        isCoachEditing
+        groups={groups ?? []}
         initial={{
           fullName: athlete.full_name,
           photoUrl,
@@ -60,9 +53,12 @@ export default async function EditAthletePage({
           heightCm: athlete.height_cm?.toString() ?? "",
           weightKg: athlete.weight_kg?.toString() ?? "",
           jerseyNumber: athlete.jersey_number?.toString() ?? "",
-          squad: athlete.squad ?? "",
+          squadGroupId: athlete.squad_group_id ?? "",
         }}
       />
+      <div className="max-w-md">
+        <DeleteAthleteButton athleteId={athleteId} athleteName={athlete.full_name} />
+      </div>
     </div>
   );
 }

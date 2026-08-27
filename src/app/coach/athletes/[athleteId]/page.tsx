@@ -33,11 +33,13 @@ export default async function AthleteDetailPage({
 
   const { data: athlete } = await supabase
     .from("profiles")
-    .select("*")
+    .select("*, squad_group:squad_groups(name)")
     .eq("id", athleteId)
     .single();
 
   if (!athlete) notFound();
+
+  const squadGroup = Array.isArray(athlete.squad_group) ? athlete.squad_group[0] : athlete.squad_group;
 
   const [{ data: workouts }, { data: loggedSets }, { data: metrics }, photoUrl, { data: cycles }] =
     await Promise.all([
@@ -119,7 +121,7 @@ export default async function AthleteDetailPage({
             {[
               athlete.position,
               athlete.jersey_number ? `#${athlete.jersey_number}` : null,
-              athlete.squad,
+              squadGroup?.name,
               age != null ? `${age} yrs` : null,
               athlete.height_cm ? `${athlete.height_cm} cm` : null,
               athlete.weight_kg ? `${athlete.weight_kg} kg` : null,

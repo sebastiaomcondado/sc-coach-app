@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { getMostRecentMonday } from "@/lib/weekdays";
 import { NavBar } from "@/components/NavBar";
+import { GroupChangeBanner } from "@/components/GroupChangeBanner";
 
 export default async function AthleteLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
@@ -23,6 +24,17 @@ export default async function AthleteLayout({ children }: { children: React.Reac
 
   const needsWeighIn = (weekMetrics ?? []).length === 0;
 
+  const hasGroupNotice = profile.squad_group_id !== profile.group_notice_seen_group_id;
+  let noticeGroupName = "Unassigned";
+  if (hasGroupNotice && profile.squad_group_id) {
+    const { data: group } = await supabase
+      .from("squad_groups")
+      .select("name")
+      .eq("id", profile.squad_group_id)
+      .single();
+    noticeGroupName = group?.name ?? "Unassigned";
+  }
+
   return (
     <div className="min-h-screen bg-neutral-950">
       <NavBar
@@ -35,6 +47,13 @@ export default async function AthleteLayout({ children }: { children: React.Reac
           { href: "/athlete/profile", label: "My profile" },
         ]}
       />
+      {hasGroupNotice && (
+        <GroupChangeBanner
+          athleteId={profile.id}
+          groupName={noticeGroupName}
+          currentGroupId={profile.squad_group_id}
+        />
+      )}
       {needsWeighIn && (
         <div className="border-b border-amber-900/50 bg-amber-950/50 px-4 py-2 text-center text-sm text-amber-200">
           Log your weight for this week —{" "}

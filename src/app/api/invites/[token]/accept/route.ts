@@ -3,10 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const { fullName, email, password, squad } = await request.json();
+  const { fullName, email, password, squadGroupId } = await request.json();
 
-  if (!fullName || !email || !password || !squad) {
-    return NextResponse.json({ error: "Missing fullName, email, password, or squad." }, { status: 400 });
+  if (!fullName || !email || !password || !squadGroupId) {
+    return NextResponse.json(
+      { error: "Missing fullName, email, password, or squadGroupId." },
+      { status: 400 }
+    );
   }
   if (password.length < 6) {
     return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
@@ -28,6 +31,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   }
   if (new Date(invite.expires_at) < new Date()) {
     return NextResponse.json({ error: "This invite link has expired." }, { status: 400 });
+  }
+
+  const { data: group } = await admin
+    .from("squad_groups")
+    .select("id")
+    .eq("id", squadGroupId)
+    .eq("coach_id", invite.coach_id)
+    .single();
+
+  if (!group) {
+    return NextResponse.json({ error: "That group isn't valid for this invite." }, { status: 400 });
   }
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
@@ -54,7 +68,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: linkError.message }, { status: 400 });
   }
 
-  await admin.from("profiles").update({ squad }).eq("id", athleteId);
+  await admin
+    .from("profiles")
+    .update({ squad_group_id: squadGroupId, group_notice_seen_group_id: squadGroupId })
+    .eq("id", athleteId);
 
   if (!invite.is_reusable) {
     await admin.from("athlete_invites").update({ used_at: new Date().toISOString() }).eq("token", token);

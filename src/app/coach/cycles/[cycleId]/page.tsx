@@ -27,14 +27,11 @@ export default async function CycleDetailPage({
     .eq("cycle_id", cycleId)
     .order("name");
 
-  const { data: rosterRows } = await supabase
-    .from("coach_athletes")
-    .select("athlete:profiles!coach_athletes_athlete_id_fkey(squad)")
-    .eq("coach_id", profile!.id);
-
-  const groups = [
-    ...new Set((rosterRows ?? []).map((r) => r.athlete?.squad).filter((s): s is string => !!s)),
-  ].sort();
+  const { data: groups } = await supabase
+    .from("squad_groups")
+    .select("id, name")
+    .eq("coach_id", profile!.id)
+    .order("name");
 
   return (
     <div>
@@ -61,7 +58,7 @@ export default async function CycleDetailPage({
       </div>
 
       <div className="mb-6">
-        <AssignCycleToGroup cycleId={cycle.id} groups={groups} />
+        <AssignCycleToGroup cycleId={cycle.id} groups={groups ?? []} />
       </div>
 
       <div className="mb-3 flex items-center justify-between">

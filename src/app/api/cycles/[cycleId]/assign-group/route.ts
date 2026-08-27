@@ -45,9 +45,9 @@ function resolvePhase(phases: PhaseRow[], weekNumber: number): PhaseRow | undefi
 
 export async function POST(request: Request, { params }: { params: Promise<{ cycleId: string }> }) {
   const { cycleId } = await params;
-  const { squad } = await request.json();
+  const { squadGroupId } = await request.json();
 
-  if (!squad) {
+  if (!squadGroupId) {
     return NextResponse.json({ error: "Pick a group." }, { status: 400 });
   }
 
@@ -79,13 +79,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ cyc
 
   const { data: rosterRows } = await supabase
     .from("coach_athletes")
-    .select("athlete:profiles!coach_athletes_athlete_id_fkey(id, squad)")
+    .select("athlete:profiles!coach_athletes_athlete_id_fkey(id, squad_group_id)")
     .eq("coach_id", profile.id);
 
   const athleteIds = (rosterRows ?? [])
     .map((r) => r.athlete)
-    .filter((a): a is { id: string; squad: string | null } => !!a)
-    .filter((a) => a.squad === squad)
+    .filter((a): a is { id: string; squad_group_id: string | null } => !!a)
+    .filter((a) => a.squad_group_id === squadGroupId)
     .map((a) => a.id);
 
   if (athleteIds.length === 0) {

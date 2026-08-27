@@ -14,6 +14,7 @@ export default async function CoachLayout({ children }: { children: React.ReactN
         name={profile.full_name}
         links={[
           { href: "/coach", label: "Roster" },
+          { href: "/coach/groups", label: "Groups" },
           { href: "/coach/calendar", label: "Calendar" },
           { href: "/coach/workouts/new", label: "New workout" },
           { href: "/coach/templates", label: "Templates" },

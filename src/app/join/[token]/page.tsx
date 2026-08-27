@@ -13,22 +13,25 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
 
   const coach = invite ? (Array.isArray(invite.coach) ? invite.coach[0] : invite.coach) : null;
 
-  let squadSuggestions = ["Forwards", "Backs"];
+  let groups: { id: string; name: string }[] = [];
   if (invite) {
-    const { data: rosterRows } = await admin
-      .from("coach_athletes")
-      .select("athlete:profiles!coach_athletes_athlete_id_fkey(squad)")
-      .eq("coach_id", invite.coach_id);
+    const { data: groupRows } = await admin
+      .from("squad_groups")
+      .select("id, name")
+      .eq("coach_id", invite.coach_id)
+      .order("name");
+    groups = groupRows ?? [];
 
-    squadSuggestions = [
-      ...new Set(
-        [
-          ...(rosterRows ?? []).map((r) => r.athlete?.squad).filter((s): s is string => !!s),
-          "Forwards",
-          "Backs",
-        ]
-      ),
-    ];
+    if (groups.length === 0) {
+      const { data: seeded } = await admin
+        .from("squad_groups")
+        .insert([
+          { coach_id: invite.coach_id, name: "Forwards" },
+          { coach_id: invite.coach_id, name: "Backs" },
+        ])
+        .select("id, name");
+      groups = (seeded ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
+    }
   }
 
   const invalidReason = !invite
@@ -53,11 +56,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
             <p className="mb-6 text-sm text-neutral-400">
               Set up your account to see your workouts and log your training.
             </p>
-            <JoinForm
-              token={token}
-              initialFullName={invite!.full_name ?? ""}
-              squadSuggestions={squadSuggestions}
-            />
+            <JoinForm token={token} initialFullName={invite!.full_name ?? ""} groups={groups} />
           </>
         )}
       </div>

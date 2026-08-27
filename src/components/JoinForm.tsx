@@ -7,18 +7,18 @@ import { createClient } from "@/lib/supabase/client";
 export function JoinForm({
   token,
   initialFullName,
-  squadSuggestions = ["Forwards", "Backs"],
+  groups,
 }: {
   token: string;
   initialFullName: string;
-  squadSuggestions?: string[];
+  groups: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [step, setStep] = useState<"details" | "photo">("details");
   const [fullName, setFullName] = useState(initialFullName);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [squad, setSquad] = useState("");
+  const [squadGroupId, setSquadGroupId] = useState("");
   const [athleteId, setAthleteId] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export function JoinForm({
     const res = await fetch(`/api/invites/${token}/accept`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName, email, password, squad }),
+      body: JSON.stringify({ fullName, email, password, squadGroupId }),
     });
     const body = await res.json();
 
@@ -174,19 +174,21 @@ export function JoinForm({
       </div>
       <div>
         <label className="mb-1 block text-sm text-neutral-300">Group</label>
-        <input
+        <select
           required
-          value={squad}
-          onChange={(e) => setSquad(e.target.value)}
-          placeholder="e.g. Forwards"
-          list="squad-suggestions"
+          value={squadGroupId}
+          onChange={(e) => setSquadGroupId(e.target.value)}
           className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
-        />
-        <datalist id="squad-suggestions">
-          {squadSuggestions.map((s) => (
-            <option key={s} value={s} />
+        >
+          <option value="" disabled>
+            — Choose a group —
+          </option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
           ))}
-        </datalist>
+        </select>
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}

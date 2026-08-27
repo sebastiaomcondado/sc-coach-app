@@ -22,7 +22,7 @@ export default async function AthleteProfilePage() {
           heightCm: profile!.height_cm?.toString() ?? "",
           weightKg: profile!.weight_kg?.toString() ?? "",
           jerseyNumber: profile!.jersey_number?.toString() ?? "",
-          squad: profile!.squad ?? "",
+          squadGroupId: profile!.squad_group_id ?? "",
         }}
       />
     </div>

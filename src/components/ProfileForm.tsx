@@ -26,19 +26,21 @@ export type ProfileFormValues = {
   heightCm: string;
   weightKg: string;
   jerseyNumber: string;
-  squad: string;
+  squadGroupId: string;
 };
 
 export function ProfileForm({
   athleteId,
   initial,
   redirectTo,
-  squadSuggestions = ["Forwards", "Backs"],
+  isCoachEditing = false,
+  groups = [],
 }: {
   athleteId: string;
   initial: ProfileFormValues;
   redirectTo: string;
-  squadSuggestions?: string[];
+  isCoachEditing?: boolean;
+  groups?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [fullName, setFullName] = useState(initial.fullName);
@@ -47,7 +49,7 @@ export function ProfileForm({
   const [heightCm, setHeightCm] = useState(initial.heightCm);
   const [weightKg, setWeightKg] = useState(initial.weightKg);
   const [jerseyNumber, setJerseyNumber] = useState(initial.jerseyNumber);
-  const [squad, setSquad] = useState(initial.squad);
+  const [squadGroupId, setSquadGroupId] = useState(initial.squadGroupId);
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial.photoUrl);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +94,7 @@ export function ProfileForm({
         height_cm: heightCm ? Number(heightCm) : null,
         weight_kg: weightKg ? Number(weightKg) : null,
         jersey_number: jerseyNumber ? Number(jerseyNumber) : null,
-        squad: squad || null,
+        ...(isCoachEditing ? { squad_group_id: squadGroupId || null } : {}),
         ...(photoPath ? { photo_path: photoPath } : {}),
       })
       .eq("id", athleteId);
@@ -191,21 +193,23 @@ export function ProfileForm({
             className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
           />
         </div>
-        <div>
-          <label className="mb-1 block text-sm text-neutral-300">Group</label>
-          <input
-            value={squad}
-            onChange={(e) => setSquad(e.target.value)}
-            placeholder="e.g. Forwards"
-            list="squad-suggestions"
-            className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
-          />
-          <datalist id="squad-suggestions">
-            {squadSuggestions.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
-        </div>
+        {isCoachEditing && (
+          <div>
+            <label className="mb-1 block text-sm text-neutral-300">Group</label>
+            <select
+              value={squadGroupId}
+              onChange={(e) => setSquadGroupId(e.target.value)}
+              className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
+            >
+              <option value="">Unassigned</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}

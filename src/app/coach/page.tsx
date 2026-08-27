@@ -9,7 +9,7 @@ export default async function RosterPage() {
   const { data: rows } = await supabase
     .from("coach_athletes")
     .select(
-      "athlete_id, athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name, position, jersey_number, squad)"
+      "athlete_id, athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name, position, jersey_number, squad_group:squad_groups(name))"
     )
     .eq("coach_id", profile!.id);
 
@@ -18,17 +18,27 @@ export default async function RosterPage() {
     full_name: string;
     position: string | null;
     jersey_number: number | null;
-    squad: string | null;
+    groupName: string | null;
   };
 
   const athletes = (rows ?? [])
     .map((r) => r.athlete)
-    .filter((a): a is RosterAthlete => !!a)
+    .filter((a): a is NonNullable<typeof a> => !!a)
+    .map((a): RosterAthlete => {
+      const squadGroup = Array.isArray(a.squad_group) ? a.squad_group[0] : a.squad_group;
+      return {
+        id: a.id,
+        full_name: a.full_name,
+        position: a.position,
+        jersey_number: a.jersey_number,
+        groupName: squadGroup?.name ?? null,
+      };
+    })
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
   const groups = new Map<string, RosterAthlete[]>();
   for (const athlete of athletes) {
-    const key = athlete.squad ?? "Unassigned";
+    const key = athlete.groupName ?? "Unassigned";
     groups.set(key, [...(groups.get(key) ?? []), athlete]);
   }
   const orderedGroups = [...groups.keys()].filter((k) => k !== "Unassigned").sort();

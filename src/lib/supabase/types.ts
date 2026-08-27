@@ -15,7 +15,8 @@ export interface Database {
           height_cm: number | null;
           weight_kg: number | null;
           jersey_number: number | null;
-          squad: string | null;
+          squad_group_id: string | null;
+          group_notice_seen_group_id: string | null;
         };
         Insert: {
           id: string;
@@ -28,7 +29,8 @@ export interface Database {
           height_cm?: number | null;
           weight_kg?: number | null;
           jersey_number?: number | null;
-          squad?: string | null;
+          squad_group_id?: string | null;
+          group_notice_seen_group_id?: string | null;
         };
         Update: {
           full_name?: string;
@@ -39,9 +41,44 @@ export interface Database {
           height_cm?: number | null;
           weight_kg?: number | null;
           jersey_number?: number | null;
-          squad?: string | null;
+          squad_group_id?: string | null;
+          group_notice_seen_group_id?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "profiles_squad_group_id_fkey";
+            columns: ["squad_group_id"];
+            isOneToOne: false;
+            referencedRelation: "squad_groups";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      squad_groups: {
+        Row: {
+          id: string;
+          coach_id: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          name: string;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "squad_groups_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       coach_athletes: {
         Row: {
