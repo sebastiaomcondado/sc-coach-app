@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { AddExerciseForm } from "@/components/AddExerciseForm";
+import { ExerciseOneRmTag } from "@/components/ExerciseOneRmTag";
 
 export default async function ExerciseLibraryPage() {
   const supabase = await createClient();
@@ -26,16 +27,19 @@ export default async function ExerciseLibraryPage() {
                 <span className="text-white">{ex.name}</span>
                 {ex.category && <span className="ml-2 text-sm text-neutral-500">{ex.category}</span>}
               </div>
-              {ex.video_url && (
-                <a
-                  href={ex.video_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-emerald-400 hover:underline"
-                >
-                  Video
-                </a>
-              )}
+              <div className="flex shrink-0 items-center gap-3">
+                {ex.video_url && (
+                  <a
+                    href={ex.video_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-emerald-400 hover:underline"
+                  >
+                    Video
+                  </a>
+                )}
+                <ExerciseOneRmTag exerciseId={ex.id} initialCategory={ex.one_rm_category} />
+              </div>
             </li>
           ))}
         </ul>

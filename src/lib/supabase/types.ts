@@ -1,4 +1,5 @@
 export type Role = "coach" | "athlete";
+export type OneRmCategory = "squat" | "deadlift" | "row" | "bench_press";
 
 export interface Database {
   public: {
@@ -117,6 +118,7 @@ export interface Database {
           video_url: string | null;
           created_by: string | null;
           created_at: string;
+          one_rm_category: OneRmCategory | null;
         };
         Insert: {
           id?: string;
@@ -125,11 +127,13 @@ export interface Database {
           video_url?: string | null;
           created_by?: string | null;
           created_at?: string;
+          one_rm_category?: OneRmCategory | null;
         };
         Update: {
           name?: string;
           category?: string | null;
           video_url?: string | null;
+          one_rm_category?: OneRmCategory | null;
         };
         Relationships: [
           {
@@ -537,6 +541,74 @@ export interface Database {
             columns: ["template_exercise_id"];
             isOneToOne: false;
             referencedRelation: "template_exercises";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      test_types: {
+        Row: {
+          id: string;
+          coach_id: string | null;
+          name: string;
+          unit: string;
+          higher_is_better: boolean;
+          is_custom: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id?: string | null;
+          name: string;
+          unit: string;
+          higher_is_better: boolean;
+          is_custom?: boolean;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: "test_types_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      test_results: {
+        Row: {
+          id: string;
+          test_type_id: string;
+          athlete_id: string;
+          value: number;
+          logged_date: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          test_type_id: string;
+          athlete_id: string;
+          value: number;
+          logged_date?: string;
+          created_at?: string;
+        };
+        Update: {
+          value?: number;
+          logged_date?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "test_results_test_type_id_fkey";
+            columns: ["test_type_id"];
+            isOneToOne: false;
+            referencedRelation: "test_types";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "test_results_athlete_id_fkey";
+            columns: ["athlete_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];

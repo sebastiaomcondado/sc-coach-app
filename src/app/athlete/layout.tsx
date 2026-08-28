@@ -43,6 +43,7 @@ export default async function AthleteLayout({ children }: { children: React.Reac
           { href: "/athlete", label: "My workouts" },
           { href: "/athlete/calendar", label: "Calendar" },
           { href: "/athlete/progress", label: "My progress" },
+          { href: "/athlete/tests", label: "Tests" },
           { href: "/athlete/metrics", label: "Body metrics" },
           { href: "/athlete/profile", label: "My profile" },
         ]}
