@@ -8,6 +8,9 @@ import { ProgressChart } from "@/components/ProgressChart";
 import { PersonalRecordsTable } from "@/components/PersonalRecordsTable";
 import { MetricsChart } from "@/components/MetricsChart";
 import { CycleFilterSelect } from "@/components/CycleFilterSelect";
+import { BadgeList } from "@/components/BadgeList";
+import { loadLeaderboardsData } from "@/lib/leaderboardsData";
+import type { BadgeKey } from "@/lib/supabase/types";
 
 function calculateAge(dateOfBirth: string | null): number | null {
   if (!dateOfBirth) return null;
@@ -41,7 +44,7 @@ export default async function AthleteDetailPage({
 
   const squadGroup = Array.isArray(athlete.squad_group) ? athlete.squad_group[0] : athlete.squad_group;
 
-  const [{ data: workouts }, { data: loggedSets }, { data: metrics }, photoUrl, { data: cycles }] =
+  const [{ data: workouts }, { data: loggedSets }, { data: metrics }, photoUrl, { data: cycles }, { data: badges }, leaderboards] =
     await Promise.all([
     supabase
       .from("workouts")
@@ -57,7 +60,10 @@ export default async function AthleteDetailPage({
     supabase.from("body_metrics").select("*").eq("athlete_id", athleteId).order("logged_date"),
     getAvatarUrl(supabase, athlete.photo_path),
     supabase.from("training_cycles").select("id, name").eq("coach_id", profile!.id).order("name"),
+    supabase.from("athlete_badges").select("badge_key").eq("athlete_id", athleteId),
+    loadLeaderboardsData(profile!.id),
   ]);
+  const lastMonthPlace = leaderboards.lastMonthPodium.find((p) => p.athleteId === athleteId)?.place ?? null;
 
   const filteredWorkouts = cycle ? (workouts ?? []).filter((w) => w.cycle_id === cycle) : workouts ?? [];
 
@@ -131,6 +137,14 @@ export default async function AthleteDetailPage({
           </p>
         </div>
       </div>
+
+      <section className="mb-10">
+        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-400">Badges</h2>
+        <BadgeList
+          badgeKeys={(badges ?? []).map((b) => b.badge_key as BadgeKey)}
+          lastMonthPlace={lastMonthPlace}
+        />
+      </section>
 
       <section className="mb-10">
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-400">

@@ -21,6 +21,7 @@ export default async function CoachLayout({ children }: { children: React.ReactN
           { href: "/coach/cycles", label: "Cycles" },
           { href: "/coach/exercises", label: "Exercise library" },
           { href: "/coach/tests", label: "Tests" },
+          { href: "/coach/leaderboards", label: "Leaderboards" },
           { href: "/coach/reports", label: "Reports" },
         ]}
       />

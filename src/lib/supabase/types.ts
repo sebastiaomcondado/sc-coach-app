@@ -1,5 +1,6 @@
 export type Role = "coach" | "athlete";
 export type OneRmCategory = "squat" | "deadlift" | "row" | "bench_press";
+export type BadgeKey = "workouts_25" | "workouts_50" | "workouts_100" | "workouts_200" | "weight_100kg";
 
 export interface Database {
   public: {
@@ -18,6 +19,7 @@ export interface Database {
           jersey_number: number | null;
           squad_group_id: string | null;
           group_notice_seen_group_id: string | null;
+          podium_notice_seen_month: string | null;
         };
         Insert: {
           id: string;
@@ -32,6 +34,7 @@ export interface Database {
           jersey_number?: number | null;
           squad_group_id?: string | null;
           group_notice_seen_group_id?: string | null;
+          podium_notice_seen_month?: string | null;
         };
         Update: {
           full_name?: string;
@@ -44,6 +47,7 @@ export interface Database {
           jersey_number?: number | null;
           squad_group_id?: string | null;
           group_notice_seen_group_id?: string | null;
+          podium_notice_seen_month?: string | null;
         };
         Relationships: [
           {
@@ -606,6 +610,34 @@ export interface Database {
           },
           {
             foreignKeyName: "test_results_athlete_id_fkey";
+            columns: ["athlete_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      athlete_badges: {
+        Row: {
+          id: string;
+          athlete_id: string;
+          badge_key: BadgeKey;
+          earned_at: string;
+          seen_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          athlete_id: string;
+          badge_key: BadgeKey;
+          earned_at?: string;
+          seen_at?: string | null;
+        };
+        Update: {
+          seen_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "athlete_badges_athlete_id_fkey";
             columns: ["athlete_id"];
             isOneToOne: false;
             referencedRelation: "profiles";

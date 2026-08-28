@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { checkAndAwardBadges } from "@/lib/badges";
 
 export type ExerciseBlock = {
   workoutExerciseId: string;
@@ -92,6 +93,10 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
     const weightsLogged = rows.map((r) => r.weight).filter((w): w is number => w != null);
     const bestJustLogged = weightsLogged.length > 0 ? Math.max(...weightsLogged) : null;
     const isPr = bestJustLogged != null && bestJustLogged > (block?.priorBest ?? 0);
+
+    if (weightsLogged.length > 0) {
+      await checkAndAwardBadges(supabase, athleteId, weightsLogged);
+    }
 
     setSavingId(null);
     setSavedId(workoutExerciseId);
