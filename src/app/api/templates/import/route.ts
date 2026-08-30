@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { parseCsv, parseFlatTemplateRows } from "@/lib/sheetImport";
-
-function extractSheetId(url: string): string | null {
-  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  return match ? match[1] : null;
-}
+import type { ParsedExerciseEntry } from "@/lib/sheetImport";
 
 export async function POST(request: Request) {
-  const { templateName, notes, sheetUrl, tabName, cycleId } = await request.json();
+  const { templateName, notes, cycleId, entries } = (await request.json()) as {
+    templateName?: string;
+    notes?: string;
+    cycleId?: string;
+    entries?: ParsedExerciseEntry[];
+  };
 
-  if (!templateName || !sheetUrl || !tabName) {
-    return NextResponse.json(
-      { error: "Missing templateName, sheetUrl, or tabName." },
-      { status: 400 }
-    );
+  if (!templateName || !entries || entries.length === 0) {
+    return NextResponse.json({ error: "Missing templateName or entries." }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -34,41 +31,6 @@ export async function POST(request: Request) {
 
   if (callerProfile?.role !== "coach") {
     return NextResponse.json({ error: "Only coaches can import templates." }, { status: 403 });
-  }
-
-  const sheetId = extractSheetId(sheetUrl);
-  if (!sheetId) {
-    return NextResponse.json({ error: "That doesn't look like a Google Sheets URL." }, { status: 400 });
-  }
-
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(
-    tabName
-  )}`;
-
-  const sheetRes = await fetch(csvUrl);
-  if (!sheetRes.ok) {
-    return NextResponse.json(
-      {
-        error:
-          "Couldn't read that sheet. Make sure it's shared as \"anyone with the link can view\" and the tab name is exact.",
-      },
-      { status: 400 }
-    );
-  }
-
-  const csvText = await sheetRes.text();
-  let entries;
-  try {
-    entries = parseFlatTemplateRows(parseCsv(csvText));
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Could not parse the sheet." },
-      { status: 400 }
-    );
-  }
-
-  if (entries.length === 0) {
-    return NextResponse.json({ error: "No exercise rows found in that tab." }, { status: 400 });
   }
 
   const { data: template, error: templateError } = await supabase

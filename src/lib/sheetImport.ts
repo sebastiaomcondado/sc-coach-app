@@ -107,8 +107,12 @@ function cell(row: string[], index: number | undefined): string {
   return (row[index] ?? "").trim();
 }
 
-export function parseFlatTemplateRows(rows: string[][]): ParsedExerciseEntry[] {
-  if (rows.length === 0) return [];
+export type FlaggedRow = { row: number; reason: string };
+
+export type ParsedTemplateRows = { entries: ParsedExerciseEntry[]; flagged: FlaggedRow[] };
+
+export function parseFlatTemplateRows(rows: string[][]): ParsedTemplateRows {
+  if (rows.length === 0) return { entries: [], flagged: [] };
 
   const headerRow = rows[0];
   const columns: ColumnIndexes = {};
@@ -123,6 +127,7 @@ export function parseFlatTemplateRows(rows: string[][]): ParsedExerciseEntry[] {
   }
 
   const entries: ParsedExerciseEntry[] = [];
+  const flagged: FlaggedRow[] = [];
   let lastSection = "";
   let lastGroup = "";
   let lastExercise = "";
@@ -130,7 +135,9 @@ export function parseFlatTemplateRows(rows: string[][]): ParsedExerciseEntry[] {
   let lastCategory = "";
   let currentKey: string | null = null;
 
-  for (const row of rows.slice(1)) {
+  for (const [offset, row] of rows.slice(1).entries()) {
+    const rowNumber = offset + 2; // +1 for the header row, +1 for 1-indexing
+
     const rawExercise = cell(row, columns.exercise);
     const section = cell(row, columns.section) || lastSection;
     const group = cell(row, columns.group) || lastGroup;
@@ -144,7 +151,10 @@ export function parseFlatTemplateRows(rows: string[][]): ParsedExerciseEntry[] {
     lastCategory = category;
     lastExercise = exerciseName;
 
-    if (!exerciseName) continue;
+    if (!exerciseName) {
+      flagged.push({ row: rowNumber, reason: "No exercise name (and none to fill down from above)." });
+      continue;
+    }
 
     const phase: ParsedPhase = {
       label: cell(row, columns.phase),
@@ -174,5 +184,31 @@ export function parseFlatTemplateRows(rows: string[][]): ParsedExerciseEntry[] {
     }
   }
 
-  return entries;
+  return { entries, flagged };
+}
+
+export function extractSheetId(url: string): string | null {
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
+}
+
+export async function fetchSheetRows(sheetUrl: string, tabName: string): Promise<string[][]> {
+  const sheetId = extractSheetId(sheetUrl);
+  if (!sheetId) {
+    throw new Error("That doesn't look like a Google Sheets URL.");
+  }
+
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(
+    tabName
+  )}`;
+
+  const sheetRes = await fetch(csvUrl);
+  if (!sheetRes.ok) {
+    throw new Error(
+      "Couldn't read that sheet. Make sure it's shared as \"anyone with the link can view\" and the tab name is exact."
+    );
+  }
+
+  const csvText = await sheetRes.text();
+  return parseCsv(csvText);
 }

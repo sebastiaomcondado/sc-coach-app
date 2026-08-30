@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import type { ParsedExerciseEntry, FlaggedRow } from "@/lib/sheetImport";
 
 type Cycle = { id: string; name: string };
 
@@ -15,19 +16,22 @@ export function ImportTemplateForm({ cycles }: { cycles: Cycle[] }) {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState<{ entries: ParsedExerciseEntry[]; flagged: FlaggedRow[] } | null>(
+    null
+  );
   const [result, setResult] = useState<{ exercisesImported: number; exercisesCreated: number } | null>(
     null
   );
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handlePreview(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const res = await fetch("/api/templates/import", {
+    const res = await fetch("/api/templates/import/preview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ templateName, sheetUrl, tabName, cycleId, notes }),
+      body: JSON.stringify({ sheetUrl, tabName }),
     });
     const body = await res.json();
 
@@ -37,7 +41,27 @@ export function ImportTemplateForm({ cycles }: { cycles: Cycle[] }) {
       setError(body.error ?? "Something went wrong.");
       return;
     }
+    setPreview(body);
+  }
 
+  async function handleConfirm() {
+    if (!preview) return;
+    setError(null);
+    setLoading(true);
+
+    const res = await fetch("/api/templates/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ templateName, notes, cycleId, entries: preview.entries }),
+    });
+    const body = await res.json();
+
+    setLoading(false);
+
+    if (!res.ok) {
+      setError(body.error ?? "Something went wrong.");
+      return;
+    }
     setResult(body);
   }
 
@@ -67,6 +91,7 @@ export function ImportTemplateForm({ cycles }: { cycles: Cycle[] }) {
             onClick={() => {
               router.refresh();
               setResult(null);
+              setPreview(null);
               setTemplateName("");
               setSheetUrl("");
               setTabName("");
@@ -82,6 +107,88 @@ export function ImportTemplateForm({ cycles }: { cycles: Cycle[] }) {
     );
   }
 
+  if (preview) {
+    return (
+      <div className="max-w-2xl">
+        <h1 className="mb-2 text-xl font-semibold text-white">Preview import</h1>
+        <p className="mb-6 text-sm text-neutral-400">
+          Nothing has been saved yet. Review what will be created, then confirm.
+        </p>
+
+        <div className="mb-6">
+          <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-neutral-400">
+            Will create ({preview.entries.length} exercise{preview.entries.length === 1 ? "" : "s"})
+          </h2>
+          {preview.entries.length === 0 ? (
+            <p className="text-neutral-400">Nothing parsed from this sheet.</p>
+          ) : (
+            <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
+              {preview.entries.map((e, i) => (
+                <li key={i} className="px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white">
+                      {e.supersetGroup && <span className="mr-1.5 text-neutral-500">{e.supersetGroup}.</span>}
+                      {e.exerciseName}
+                    </span>
+                    {e.section && <span className="text-xs text-neutral-500">{e.section}</span>}
+                  </div>
+                  <p className="mt-1 text-sm text-neutral-400">
+                    {e.phases
+                      .map(
+                        (p) =>
+                          `${p.label ? p.label + ": " : ""}${p.sets || "–"}x${p.reps || "–"}${
+                            p.rpe ? ` @RPE ${p.rpe}` : ""
+                          }${p.rest ? ` · Rest ${p.rest}` : ""}`
+                      )
+                      .join(" | ")}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {preview.flagged.length > 0 && (
+          <div className="mb-6">
+            <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-amber-400">
+              Flagged rows ({preview.flagged.length})
+            </h2>
+            <ul className="divide-y divide-neutral-800 rounded-lg border border-amber-900/50">
+              {preview.flagged.map((f, i) => (
+                <li key={i} className="px-4 py-2 text-sm text-amber-200">
+                  Row {f.row}: {f.reason}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={loading || preview.entries.length === 0}
+            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+          >
+            {loading ? "Importing…" : "Confirm import"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPreview(null);
+              setError(null);
+            }}
+            className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
+          >
+            ← Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-lg">
       <h1 className="mb-2 text-xl font-semibold text-white">Import from Google Sheets</h1>
@@ -90,7 +197,7 @@ export function ImportTemplateForm({ cycles }: { cycles: Cycle[] }) {
         can view&quot;</span>.
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handlePreview} className="space-y-4">
         <div>
           <label className="mb-1 block text-sm text-neutral-300">Template name</label>
           <input
@@ -154,7 +261,7 @@ export function ImportTemplateForm({ cycles }: { cycles: Cycle[] }) {
           disabled={loading}
           className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
         >
-          {loading ? "Importing…" : "Import"}
+          {loading ? "Loading…" : "Preview"}
         </button>
       </form>
 
