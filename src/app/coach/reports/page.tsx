@@ -10,6 +10,7 @@ import {
   getMonthRange,
   shiftMonth,
 } from "@/lib/reports";
+import { SendReportButton } from "@/components/SendReportButton";
 
 export default async function ReportsPage({
   searchParams,
@@ -77,7 +78,10 @@ export default async function ReportsPage({
 
   return (
     <div>
-      <h1 className="mb-6 text-xl font-semibold text-white">Reports</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-white">Reports</h1>
+        <SendReportButton week={week} month={month} />
+      </div>
 
       <section className="mb-10">
         <div className="mb-3 flex items-center justify-between">
