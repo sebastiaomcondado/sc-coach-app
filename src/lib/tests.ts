@@ -12,7 +12,7 @@ export const ONE_RM_CATEGORY_LABELS: Record<OneRmCategory, string> = {
 // Fixed test-type name -> the 1RM category whose logged sets should be
 // suggested when logging that test.
 export const ONE_RM_TEST_NAME_TO_CATEGORY: Record<string, OneRmCategory> = {
-  "Squat 1RM": "squat",
+  "Back Squat 1RM": "squat",
   "Deadlift 1RM": "deadlift",
   "Row 1RM": "row",
   "Bench Press 1RM": "bench_press",

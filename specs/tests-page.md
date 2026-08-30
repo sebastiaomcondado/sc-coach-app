@@ -7,7 +7,7 @@ Give a coach a dedicated place to log and track physical test results (1RM lifts
 
 ### Test types
 - Eleven fixed, built-in test types, each with a unit and a "higher is better" or "lower is better" direction (used to determine personal bests):
-  - Squat 1RM — kg, higher is better
+  - Back Squat 1RM — kg, higher is better
   - Deadlift 1RM — kg, higher is better
   - Bench Press 1RM — kg, higher is better
   - Row 1RM — kg, higher is better
