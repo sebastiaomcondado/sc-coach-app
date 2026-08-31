@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
+import { positionSubgroupsFor, subdivideByPosition } from "@/lib/positions";
+
+type RosterAthlete = {
+  id: string;
+  full_name: string;
+  position: string | null;
+  jersey_number: number | null;
+  groupName: string | null;
+};
 
 export default async function RosterPage() {
   const profile = await getCurrentProfile();
@@ -12,14 +21,6 @@ export default async function RosterPage() {
       "athlete_id, athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name, position, jersey_number, squad_group:squad_groups!profiles_squad_group_id_fkey(name))"
     )
     .eq("coach_id", profile!.id);
-
-  type RosterAthlete = {
-    id: string;
-    full_name: string;
-    position: string | null;
-    jersey_number: number | null;
-    groupName: string | null;
-  };
 
   const athletes = (rows ?? [])
     .map((r) => r.athlete)
@@ -66,35 +67,63 @@ export default async function RosterPage() {
         </p>
       ) : (
         <div className="space-y-6">
-          {orderedGroups.map((group) => (
-            <div key={group}>
-              <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-neutral-400">
-                {group}
-              </h2>
-              <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
-                {groups.get(group)!.map((athlete) => (
-                  <li key={athlete.id}>
-                    <Link
-                      href={`/coach/athletes/${athlete.id}`}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900"
-                    >
-                      <div>
-                        <span className="text-white">{athlete.full_name}</span>
-                        <span className="ml-2 text-sm text-neutral-500">
-                          {[athlete.position, athlete.jersey_number ? `#${athlete.jersey_number}` : null]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </span>
+          {orderedGroups.map((group) => {
+            const positions = positionSubgroupsFor(group);
+            const groupAthletes = groups.get(group)!;
+
+            return (
+              <div key={group}>
+                <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-neutral-400">
+                  {group}
+                </h2>
+                {positions ? (
+                  <div className="space-y-4">
+                    {subdivideByPosition(groupAthletes, positions).map((section) => (
+                      <div key={section.label}>
+                        <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                          {section.label}
+                        </h3>
+                        <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
+                          {section.athletes.map((athlete) => (
+                            <RosterAthleteRow key={athlete.id} athlete={athlete} />
+                          ))}
+                        </ul>
                       </div>
-                      <span className="text-sm text-neutral-500">View progress →</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+                    ))}
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
+                    {groupAthletes.map((athlete) => (
+                      <RosterAthleteRow key={athlete.id} athlete={athlete} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
+  );
+}
+
+function RosterAthleteRow({ athlete }: { athlete: RosterAthlete }) {
+  return (
+    <li>
+      <Link
+        href={`/coach/athletes/${athlete.id}`}
+        className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900"
+      >
+        <div>
+          <span className="text-white">{athlete.full_name}</span>
+          <span className="ml-2 text-sm text-neutral-500">
+            {[athlete.position, athlete.jersey_number ? `#${athlete.jersey_number}` : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </div>
+        <span className="text-sm text-neutral-500">View progress →</span>
+      </Link>
+    </li>
   );
 }

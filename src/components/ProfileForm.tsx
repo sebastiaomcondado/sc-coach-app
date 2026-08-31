@@ -3,20 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-
-const POSITIONS = [
-  "",
-  "Prop",
-  "Hooker",
-  "Lock",
-  "Flanker",
-  "Number 8",
-  "Scrum-half",
-  "Fly-half",
-  "Centre",
-  "Wing",
-  "Fullback",
-];
+import { ALL_POSITIONS } from "@/lib/positions";
 
 export type ProfileFormValues = {
   fullName: string;
@@ -152,13 +139,17 @@ export function ProfileForm({
         <div>
           <label className="mb-1 block text-sm text-neutral-300">Position</label>
           <select
+            required
             value={position}
             onChange={(e) => setPosition(e.target.value)}
             className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-emerald-500"
           >
-            {POSITIONS.map((p) => (
+            <option value="" disabled hidden>
+              Select a position
+            </option>
+            {ALL_POSITIONS.map((p) => (
               <option key={p} value={p}>
-                {p || "—"}
+                {p}
               </option>
             ))}
           </select>
