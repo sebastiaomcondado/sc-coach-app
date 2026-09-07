@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 
 export function TeamLinkSection({ initialLink }: { initialLink: string | null }) {
   const [link, setLink] = useState(initialLink);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!link) return;
+    QRCode.toDataURL(link, { width: 320, margin: 2 }).then(setQrCodeUrl);
+  }, [link]);
 
   async function generate() {
     setLoading(true);
@@ -54,6 +61,20 @@ export function TeamLinkSection({ initialLink }: { initialLink: string | null })
           </button>
         </div>
       ) : null}
+
+      {qrCodeUrl && (
+        <div className="mb-3 flex flex-col items-start gap-3 rounded-md border border-neutral-800 bg-neutral-900 p-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={qrCodeUrl} alt="QR code for the team join link" className="h-40 w-40" />
+          <a
+            href={qrCodeUrl}
+            download="team-join-qr-code.png"
+            className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
+          >
+            Download QR code
+          </a>
+        </div>
+      )}
 
       {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
 
