@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { TestTypeManagement } from "@/components/TestTypeManagement";
 import { TestComparison } from "@/components/TestComparison";
 
@@ -8,16 +8,18 @@ export default async function CoachTestsPage() {
   const profile = await getCurrentProfile();
   const supabase = await createClient();
 
+  const teamOwnerId = getTeamOwnerId(profile!);
+
   const [{ data: testTypes }, { data: rosterRows }, { data: results }] = await Promise.all([
     supabase
       .from("test_types")
       .select("id, name, unit, higher_is_better, coach_id")
-      .or(`coach_id.is.null,coach_id.eq.${profile!.id}`)
+      .or(`coach_id.is.null,coach_id.eq.${teamOwnerId}`)
       .order("name"),
     supabase
       .from("coach_athletes")
       .select("athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name)")
-      .eq("coach_id", profile!.id),
+      .eq("coach_id", teamOwnerId),
     supabase.from("test_results").select("id, test_type_id, athlete_id, value, logged_date"),
   ]);
 
@@ -32,7 +34,7 @@ export default async function CoachTestsPage() {
 
       <section className="mb-10">
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-400">Custom tests</h2>
-        <TestTypeManagement coachId={profile!.id} initialTestTypes={testTypes ?? []} />
+        <TestTypeManagement coachId={teamOwnerId} initialTestTypes={testTypes ?? []} />
       </section>
 
       <section className="mb-10">

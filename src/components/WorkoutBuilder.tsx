@@ -198,11 +198,18 @@ export function WorkoutBuilder({
       return;
     }
 
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("team_owner_id")
+      .eq("id", user.id)
+      .single();
+    const teamOwnerId = myProfile?.team_owner_id ?? user.id;
+
     for (const athleteId of athleteIds) {
       const { data: workout, error: workoutError } = await supabase
         .from("workouts")
         .insert({
-          coach_id: user.id,
+          coach_id: teamOwnerId,
           athlete_id: athleteId,
           title,
           notes: notes || null,

@@ -19,3 +19,11 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 
   return profile;
 }
+
+// Every coach-owned row's coach_id stores the TEAM OWNER's id, regardless of
+// which team member actually created it — this is what lets an assistant
+// coach see and act on the exact same data as the owner. A solo coach (or
+// the owner themselves) is their own team owner.
+export function getTeamOwnerId(profile: Profile): string {
+  return profile.team_owner_id ?? profile.id;
+}

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { TemplateBuilder } from "@/components/TemplateBuilder";
 
 export default async function NewTemplatePage({
@@ -13,7 +13,7 @@ export default async function NewTemplatePage({
 
   const [{ data: exercises }, { data: cycles }] = await Promise.all([
     supabase.from("exercises").select("id, name, category, video_url").order("name"),
-    supabase.from("training_cycles").select("id, name").eq("coach_id", profile!.id).order("name"),
+    supabase.from("training_cycles").select("id, name").eq("coach_id", getTeamOwnerId(profile!)).order("name"),
   ]);
 
   return (

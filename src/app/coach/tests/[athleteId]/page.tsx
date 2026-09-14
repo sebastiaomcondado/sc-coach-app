@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { AthleteTestPanel } from "@/components/AthleteTestPanel";
 import { computeOneRmSuggestions, ONE_RM_TEST_NAME_TO_CATEGORY } from "@/lib/tests";
 
@@ -19,7 +19,7 @@ export default async function CoachAthleteTestsPage({
     supabase
       .from("test_types")
       .select("id, name, unit, higher_is_better")
-      .or(`coach_id.is.null,coach_id.eq.${profile!.id}`)
+      .or(`coach_id.is.null,coach_id.eq.${getTeamOwnerId(profile!)}`)
       .order("name"),
     supabase
       .from("test_results")

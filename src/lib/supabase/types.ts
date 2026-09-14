@@ -20,6 +20,7 @@ export interface Database {
           squad_group_id: string | null;
           group_notice_seen_group_id: string | null;
           podium_notice_seen_month: string | null;
+          team_owner_id: string | null;
         };
         Insert: {
           id: string;
@@ -35,6 +36,7 @@ export interface Database {
           squad_group_id?: string | null;
           group_notice_seen_group_id?: string | null;
           podium_notice_seen_month?: string | null;
+          team_owner_id?: string | null;
         };
         Update: {
           full_name?: string;
@@ -48,6 +50,7 @@ export interface Database {
           squad_group_id?: string | null;
           group_notice_seen_group_id?: string | null;
           podium_notice_seen_month?: string | null;
+          team_owner_id?: string | null;
         };
         Relationships: [
           {
@@ -55,6 +58,13 @@ export interface Database {
             columns: ["squad_group_id"];
             isOneToOne: false;
             referencedRelation: "squad_groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "profiles_team_owner_id_fkey";
+            columns: ["team_owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -330,6 +340,34 @@ export interface Database {
           {
             foreignKeyName: "athlete_invites_coach_id_fkey";
             columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coach_invites: {
+        Row: {
+          token: string;
+          team_owner_id: string;
+          created_at: string;
+          expires_at: string;
+          used_at: string | null;
+        };
+        Insert: {
+          token?: string;
+          team_owner_id: string;
+          created_at?: string;
+          expires_at?: string;
+          used_at?: string | null;
+        };
+        Update: {
+          used_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_invites_team_owner_id_fkey";
+            columns: ["team_owner_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];

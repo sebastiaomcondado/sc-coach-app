@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 
 export default async function TemplatesPage() {
   const profile = await getCurrentProfile();
   const supabase = await createClient();
+  const teamOwnerId = getTeamOwnerId(profile!);
 
   const [{ data: templates }, { data: cycles }] = await Promise.all([
     supabase
       .from("program_templates")
       .select("id, name, notes, cycle_id")
-      .eq("coach_id", profile!.id)
+      .eq("coach_id", teamOwnerId)
       .order("name"),
-    supabase.from("training_cycles").select("id, name").eq("coach_id", profile!.id),
+    supabase.from("training_cycles").select("id, name").eq("coach_id", teamOwnerId),
   ]);
 
   const cycleName = new Map((cycles ?? []).map((c) => [c.id, c.name]));

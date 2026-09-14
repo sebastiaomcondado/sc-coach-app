@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { buildReportData, renderReportHtml, sendReportEmail } from "@/lib/reportEmail";
 
 export async function POST(request: Request) {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
-  const data = await buildReportData(supabase, profile.id, week, month);
+  const data = await buildReportData(supabase, getTeamOwnerId(profile), week, month);
   const html = renderReportHtml(data);
 
   const result = await sendReportEmail(recipient, html, `Weekly report — week of ${week}`);

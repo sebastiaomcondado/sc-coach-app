@@ -16,10 +16,12 @@ export function GroupManagement({
   coachId,
   initialGroups,
   initialAthletes,
+  isOwner,
 }: {
   coachId: string;
   initialGroups: Group[];
   initialAthletes: Athlete[];
+  isOwner: boolean;
 }) {
   const [groups, setGroups] = useState(initialGroups);
   const [athletes, setAthletes] = useState(initialAthletes);
@@ -185,7 +187,7 @@ export function GroupManagement({
               ) : (
                 <span className="text-white">{g.name}</span>
               )}
-              {renamingId !== g.id && (
+              {renamingId !== g.id && isOwner && (
                 <div className="flex shrink-0 gap-2">
                   <button
                     type="button"
@@ -209,33 +211,37 @@ export function GroupManagement({
             </li>
           ))}
         </ul>
-        <form onSubmit={handleCreateGroup} className="flex gap-2">
-          <input
-            value={newGroupName}
-            onChange={(e) => setNewGroupName(e.target.value)}
-            placeholder="New group name"
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-          >
-            + Add group
-          </button>
-        </form>
+        {isOwner && (
+          <form onSubmit={handleCreateGroup} className="flex gap-2">
+            <input
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              placeholder="New group name"
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+            >
+              + Add group
+            </button>
+          </form>
+        )}
       </section>
 
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-medium uppercase tracking-wide text-neutral-400">Athletes</h2>
-          <button
-            type="button"
-            onClick={handleBulkDelete}
-            disabled={selectedIds.size === 0 || loading}
-            className="rounded-md border border-red-900 px-3 py-1.5 text-sm text-red-400 hover:bg-red-950 disabled:opacity-50"
-          >
-            {loading ? "Deleting…" : `Delete selected (${selectedIds.size})`}
-          </button>
+          {isOwner && (
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              disabled={selectedIds.size === 0 || loading}
+              className="rounded-md border border-red-900 px-3 py-1.5 text-sm text-red-400 hover:bg-red-950 disabled:opacity-50"
+            >
+              {loading ? "Deleting…" : `Delete selected (${selectedIds.size})`}
+            </button>
+          )}
         </div>
 
         {athletes.length === 0 ? (
@@ -245,12 +251,14 @@ export function GroupManagement({
             {athletes.map((a) => (
               <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <label className="flex min-w-0 flex-1 items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(a.id)}
-                    onChange={() => toggleSelected(a.id)}
-                    className="shrink-0"
-                  />
+                  {isOwner && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(a.id)}
+                      onChange={() => toggleSelected(a.id)}
+                      className="shrink-0"
+                    />
+                  )}
                   <span className="truncate text-white">{a.full_name}</span>
                 </label>
                 <select

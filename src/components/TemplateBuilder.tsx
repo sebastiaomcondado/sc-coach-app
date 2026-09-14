@@ -118,10 +118,17 @@ export function TemplateBuilder({
       return;
     }
 
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("team_owner_id")
+      .eq("id", user.id)
+      .single();
+    const teamOwnerId = myProfile?.team_owner_id ?? user.id;
+
     const { data: template, error: templateError } = await supabase
       .from("program_templates")
       .insert({
-        coach_id: user.id,
+        coach_id: teamOwnerId,
         name,
         notes: notes || null,
         cycle_id: cycleId || null,

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { ImportTemplateForm } from "@/components/ImportTemplateForm";
 
 export default async function ImportTemplatePage() {
@@ -9,7 +9,7 @@ export default async function ImportTemplatePage() {
   const { data: cycles } = await supabase
     .from("training_cycles")
     .select("id, name")
-    .eq("coach_id", profile!.id)
+    .eq("coach_id", getTeamOwnerId(profile!))
     .order("name");
 
   return <ImportTemplateForm cycles={cycles ?? []} />;

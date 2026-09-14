@@ -29,8 +29,15 @@ export default function NewCyclePage() {
       return;
     }
 
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("team_owner_id")
+      .eq("id", user.id)
+      .single();
+    const teamOwnerId = myProfile?.team_owner_id ?? user.id;
+
     const { error: insertError } = await supabase.from("training_cycles").insert({
-      coach_id: user.id,
+      coach_id: teamOwnerId,
       name,
       start_date: startDate || null,
       end_date: endDate || null,

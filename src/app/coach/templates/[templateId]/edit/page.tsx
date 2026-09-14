@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { EditTemplateForm } from "@/components/EditTemplateForm";
 
 export default async function EditTemplatePage({
@@ -19,7 +19,7 @@ export default async function EditTemplatePage({
         .select("id, name, notes, cycle_id, day_of_week")
         .eq("id", templateId)
         .single(),
-      supabase.from("training_cycles").select("id, name").eq("coach_id", profile!.id).order("name"),
+      supabase.from("training_cycles").select("id, name").eq("coach_id", getTeamOwnerId(profile!)).order("name"),
       supabase.from("exercises").select("id, name, category, video_url").order("name"),
       supabase
         .from("template_exercises")

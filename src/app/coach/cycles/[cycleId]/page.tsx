@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { AssignCycleToGroup } from "@/components/AssignCycleToGroup";
 
 export default async function CycleDetailPage({
@@ -30,7 +30,7 @@ export default async function CycleDetailPage({
   const { data: groups } = await supabase
     .from("squad_groups")
     .select("id, name")
-    .eq("coach_id", profile!.id)
+    .eq("coach_id", getTeamOwnerId(profile!))
     .order("name");
 
   return (

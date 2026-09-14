@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { WorkoutBuilder } from "@/components/WorkoutBuilder";
 
 export default async function NewWorkoutPage({
@@ -11,19 +11,21 @@ export default async function NewWorkoutPage({
   const profile = await getCurrentProfile();
   const supabase = await createClient();
 
+  const teamOwnerId = getTeamOwnerId(profile!);
+
   const [{ data: athleteRows }, { data: exercises }, { data: templates }, { data: cycles }] =
     await Promise.all([
       supabase
         .from("coach_athletes")
         .select("athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name)")
-        .eq("coach_id", profile!.id),
+        .eq("coach_id", teamOwnerId),
       supabase.from("exercises").select("id, name, category, video_url").order("name"),
       supabase
         .from("program_templates")
         .select("id, name, cycle_id")
-        .eq("coach_id", profile!.id)
+        .eq("coach_id", teamOwnerId)
         .order("name"),
-      supabase.from("training_cycles").select("id, name").eq("coach_id", profile!.id).order("name"),
+      supabase.from("training_cycles").select("id, name").eq("coach_id", teamOwnerId).order("name"),
     ]);
 
   const athletes = (athleteRows ?? [])

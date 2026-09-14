@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { positionSubgroupsFor, subdivideByPosition } from "@/lib/positions";
 
 type RosterAthlete = {
@@ -20,7 +20,7 @@ export default async function RosterPage() {
     .select(
       "athlete_id, athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name, position, jersey_number, squad_group:squad_groups!profiles_squad_group_id_fkey(name))"
     )
-    .eq("coach_id", profile!.id);
+    .eq("coach_id", getTeamOwnerId(profile!));
 
   const athletes = (rows ?? [])
     .map((r) => r.athlete)

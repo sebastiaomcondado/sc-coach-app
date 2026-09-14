@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 
 type TemplateExerciseRow = {
   id: string;
@@ -60,6 +60,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cyc
   }
 
   const supabase = await createClient();
+  const teamOwnerId = getTeamOwnerId(profile);
 
   const { data: cycle } = await supabase
     .from("training_cycles")
@@ -80,7 +81,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cyc
   const { data: rosterRows } = await supabase
     .from("coach_athletes")
     .select("athlete:profiles!coach_athletes_athlete_id_fkey(id, squad_group_id)")
-    .eq("coach_id", profile.id);
+    .eq("coach_id", teamOwnerId);
 
   const athleteIds = (rosterRows ?? [])
     .map((r) => r.athlete)
@@ -151,7 +152,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cyc
         .from("workouts")
         .insert(
           athleteIds.map((athleteId) => ({
-            coach_id: profile.id,
+            coach_id: teamOwnerId,
             athlete_id: athleteId,
             title: template.name,
             scheduled_date: date,

@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { InviteAthleteForm } from "@/components/InviteAthleteForm";
 import { TeamLinkSection } from "@/components/TeamLinkSection";
 
@@ -14,7 +14,7 @@ export default async function NewAthletePage() {
   const { data: activeTeamLink } = await supabase
     .from("athlete_invites")
     .select("token")
-    .eq("coach_id", profile!.id)
+    .eq("coach_id", getTeamOwnerId(profile!))
     .eq("is_reusable", true)
     .gt("expires_at", new Date().toISOString())
     .order("created_at", { ascending: false })

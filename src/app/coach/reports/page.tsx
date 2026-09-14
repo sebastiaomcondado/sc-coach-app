@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { getMostRecentMonday } from "@/lib/weekdays";
 import {
   addDays,
@@ -26,15 +26,17 @@ export default async function ReportsPage({
   const month = monthParam ?? new Date().toISOString().slice(0, 7);
   const { start: monthStart, end: monthEnd } = getMonthRange(month);
 
+  const teamOwnerId = getTeamOwnerId(profile!);
+
   const [{ data: rosterRows }, { data: weekWorkouts }, { data: loggedSets }] = await Promise.all([
     supabase
       .from("coach_athletes")
       .select("athlete:profiles!coach_athletes_athlete_id_fkey(id, full_name)")
-      .eq("coach_id", profile!.id),
+      .eq("coach_id", teamOwnerId),
     supabase
       .from("workouts")
       .select("id, athlete_id")
-      .eq("coach_id", profile!.id)
+      .eq("coach_id", teamOwnerId)
       .gte("scheduled_date", week)
       .lte("scheduled_date", weekEnd),
     supabase

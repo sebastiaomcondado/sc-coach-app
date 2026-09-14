@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getTeamOwnerId } from "@/lib/auth";
 import type { Database } from "@/lib/supabase/types";
 import {
   countCompletedWorkoutsByAthlete,
@@ -36,7 +37,7 @@ export async function resolveCoachId(
   supabase: SupabaseClient<Database>,
   profile: Profile
 ): Promise<string | null> {
-  if (profile.role === "coach") return profile.id;
+  if (profile.role === "coach") return getTeamOwnerId(profile);
 
   const { data } = await supabase
     .from("coach_athletes")

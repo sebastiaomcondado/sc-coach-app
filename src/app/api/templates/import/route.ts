@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getTeamOwnerId } from "@/lib/auth";
 import type { ParsedExerciseEntry } from "@/lib/sheetImport";
 
 export async function POST(request: Request) {
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
 
   const { data: callerProfile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("*")
     .eq("id", caller.id)
     .single();
 
@@ -33,9 +34,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Only coaches can import templates." }, { status: 403 });
   }
 
+  const teamOwnerId = getTeamOwnerId(callerProfile);
+
   const { data: template, error: templateError } = await supabase
     .from("program_templates")
-    .insert({ coach_id: caller.id, name: templateName, notes: notes || null, cycle_id: cycleId || null })
+    .insert({ coach_id: teamOwnerId, name: templateName, notes: notes || null, cycle_id: cycleId || null })
     .select()
     .single();
 

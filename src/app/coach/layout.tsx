@@ -23,6 +23,7 @@ export default async function CoachLayout({ children }: { children: React.ReactN
           { href: "/coach/tests", label: "Tests" },
           { href: "/coach/leaderboards", label: "Leaderboards" },
           { href: "/coach/reports", label: "Reports" },
+          { href: "/coach/coaches", label: "Coaches" },
         ]}
       />
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>

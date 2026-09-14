@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { getAvatarUrl } from "@/lib/avatar";
 import { buildProgressSeries, buildPersonalRecords } from "@/lib/progress";
 import { ProgressChart } from "@/components/ProgressChart";
@@ -59,9 +59,9 @@ export default async function AthleteDetailPage({
       .eq("athlete_id", athleteId),
     supabase.from("body_metrics").select("*").eq("athlete_id", athleteId).order("logged_date"),
     getAvatarUrl(supabase, athlete.photo_path),
-    supabase.from("training_cycles").select("id, name").eq("coach_id", profile!.id).order("name"),
+    supabase.from("training_cycles").select("id, name").eq("coach_id", getTeamOwnerId(profile!)).order("name"),
     supabase.from("athlete_badges").select("badge_key").eq("athlete_id", athleteId),
-    loadLeaderboardsData(profile!.id),
+    loadLeaderboardsData(getTeamOwnerId(profile!)),
   ]);
   const lastMonthPlace = leaderboards.lastMonthPodium.find((p) => p.athleteId === athleteId)?.place ?? null;
 

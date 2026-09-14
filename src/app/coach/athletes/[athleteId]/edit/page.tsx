@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { getAvatarUrl } from "@/lib/avatar";
 import { ProfileForm } from "@/components/ProfileForm";
 import { DeleteAthleteButton } from "@/components/DeleteAthleteButton";
@@ -28,8 +28,10 @@ export default async function EditAthletePage({
   const { data: groups } = await supabase
     .from("squad_groups")
     .select("id, name")
-    .eq("coach_id", profile!.id)
+    .eq("coach_id", getTeamOwnerId(profile!))
     .order("name");
+
+  const isOwner = profile!.team_owner_id === null;
 
   return (
     <div>
@@ -56,9 +58,11 @@ export default async function EditAthletePage({
           squadGroupId: athlete.squad_group_id ?? "",
         }}
       />
-      <div className="max-w-md">
-        <DeleteAthleteButton athleteId={athleteId} athleteName={athlete.full_name} />
-      </div>
+      {isOwner && (
+        <div className="max-w-md">
+          <DeleteAthleteButton athleteId={athleteId} athleteName={athlete.full_name} />
+        </div>
+      )}
     </div>
   );
 }
