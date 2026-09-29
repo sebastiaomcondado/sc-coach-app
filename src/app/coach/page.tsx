@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { positionSubgroupsFor, subdivideByPosition } from "@/lib/positions";
+import { computeOneRmSuggestions, computeQualifyingOneRmFlags } from "@/lib/tests";
 
 type RosterAthlete = {
   id: string;
@@ -36,6 +37,69 @@ export default async function RosterPage() {
       };
     })
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+  const athleteIds = athletes.map((a) => a.id);
+  const newPrByAthlete = new Map<string, boolean>();
+
+  if (athleteIds.length > 0) {
+    const [{ data: fixedTestTypes }, { data: loggedSets }, { data: results }, { data: dismissals }] =
+      await Promise.all([
+        supabase.from("test_types").select("id, name").is("coach_id", null),
+        supabase
+          .from("logged_sets")
+          .select(
+            "athlete_id, weight, reps, workout_exercise:workout_exercises(exercise:exercises(name, one_rm_category), workout:workouts(scheduled_date))"
+          )
+          .in("athlete_id", athleteIds),
+        supabase.from("test_results").select("athlete_id, test_type_id, value").in("athlete_id", athleteIds),
+        supabase
+          .from("one_rm_suggestion_dismissals")
+          .select("athlete_id, test_type_id, dismissed_value")
+          .in("athlete_id", athleteIds),
+      ]);
+
+    const loggedSetsByAthlete = new Map<string, Parameters<typeof computeOneRmSuggestions>[0]>();
+    for (const row of loggedSets ?? []) {
+      const we = Array.isArray(row.workout_exercise) ? row.workout_exercise[0] : row.workout_exercise;
+      const exercise = we?.exercise ? (Array.isArray(we.exercise) ? we.exercise[0] : we.exercise) : null;
+      const workout = we?.workout ? (Array.isArray(we.workout) ? we.workout[0] : we.workout) : null;
+      const list = loggedSetsByAthlete.get(row.athlete_id) ?? [];
+      list.push({
+        weight: row.weight,
+        reps: row.reps,
+        exerciseName: exercise?.name ?? "",
+        oneRmCategory: exercise?.one_rm_category ?? null,
+        sessionDate: workout?.scheduled_date ?? null,
+      });
+      loggedSetsByAthlete.set(row.athlete_id, list);
+    }
+
+    const bestByAthlete = new Map<string, Map<string, number>>();
+    for (const r of results ?? []) {
+      const byTestType = bestByAthlete.get(r.athlete_id) ?? new Map<string, number>();
+      const current = byTestType.get(r.test_type_id);
+      if (current == null || r.value > current) byTestType.set(r.test_type_id, r.value);
+      bestByAthlete.set(r.athlete_id, byTestType);
+    }
+
+    const dismissedByAthlete = new Map<string, Map<string, number>>();
+    for (const d of dismissals ?? []) {
+      const byTestType = dismissedByAthlete.get(d.athlete_id) ?? new Map<string, number>();
+      byTestType.set(d.test_type_id, d.dismissed_value);
+      dismissedByAthlete.set(d.athlete_id, byTestType);
+    }
+
+    for (const athleteId of athleteIds) {
+      const oneRmByCategory = computeOneRmSuggestions(loggedSetsByAthlete.get(athleteId) ?? []);
+      const flags = computeQualifyingOneRmFlags(
+        fixedTestTypes ?? [],
+        oneRmByCategory,
+        bestByAthlete.get(athleteId) ?? new Map(),
+        dismissedByAthlete.get(athleteId) ?? new Map()
+      );
+      newPrByAthlete.set(athleteId, flags.length > 0);
+    }
+  }
 
   const groups = new Map<string, RosterAthlete[]>();
   for (const athlete of athletes) {
@@ -85,7 +149,11 @@ export default async function RosterPage() {
                         </h3>
                         <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
                           {section.athletes.map((athlete) => (
-                            <RosterAthleteRow key={athlete.id} athlete={athlete} />
+                            <RosterAthleteRow
+                              key={athlete.id}
+                              athlete={athlete}
+                              hasNewPr={newPrByAthlete.get(athlete.id) ?? false}
+                            />
                           ))}
                         </ul>
                       </div>
@@ -94,7 +162,11 @@ export default async function RosterPage() {
                 ) : (
                   <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
                     {groupAthletes.map((athlete) => (
-                      <RosterAthleteRow key={athlete.id} athlete={athlete} />
+                      <RosterAthleteRow
+                        key={athlete.id}
+                        athlete={athlete}
+                        hasNewPr={newPrByAthlete.get(athlete.id) ?? false}
+                      />
                     ))}
                   </ul>
                 )}
@@ -107,23 +179,30 @@ export default async function RosterPage() {
   );
 }
 
-function RosterAthleteRow({ athlete }: { athlete: RosterAthlete }) {
+function RosterAthleteRow({ athlete, hasNewPr }: { athlete: RosterAthlete; hasNewPr: boolean }) {
   return (
-    <li>
-      <Link
-        href={`/coach/athletes/${athlete.id}`}
-        className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900"
-      >
-        <div>
-          <span className="text-white">{athlete.full_name}</span>
-          <span className="ml-2 text-sm text-neutral-500">
-            {[athlete.position, athlete.jersey_number ? `#${athlete.jersey_number}` : null]
-              .filter(Boolean)
-              .join(" · ")}
-          </span>
-        </div>
-        <span className="text-sm text-neutral-500">View progress →</span>
+    <li className="flex items-center justify-between px-4 py-3 hover:bg-neutral-900">
+      <Link href={`/coach/athletes/${athlete.id}`} className="min-w-0 flex-1">
+        <span className="text-white">{athlete.full_name}</span>
+        <span className="ml-2 text-sm text-neutral-500">
+          {[athlete.position, athlete.jersey_number ? `#${athlete.jersey_number}` : null]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
       </Link>
+      <div className="flex shrink-0 items-center gap-3">
+        {hasNewPr && (
+          <Link
+            href={`/coach/tests/${athlete.id}`}
+            title="New estimated 1RM to review"
+            aria-label="New estimated 1RM to review"
+            className="h-2 w-2 rounded-full bg-emerald-400"
+          />
+        )}
+        <Link href={`/coach/athletes/${athlete.id}`} className="text-sm text-neutral-500">
+          View progress →
+        </Link>
+      </div>
     </li>
   );
 }

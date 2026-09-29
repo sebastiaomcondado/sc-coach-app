@@ -655,6 +655,40 @@ export interface Database {
           },
         ];
       };
+      one_rm_suggestion_dismissals: {
+        Row: {
+          athlete_id: string;
+          test_type_id: string;
+          dismissed_value: number;
+          dismissed_at: string;
+        };
+        Insert: {
+          athlete_id: string;
+          test_type_id: string;
+          dismissed_value: number;
+          dismissed_at?: string;
+        };
+        Update: {
+          dismissed_value?: number;
+          dismissed_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "one_rm_suggestion_dismissals_athlete_id_fkey";
+            columns: ["athlete_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "one_rm_suggestion_dismissals_test_type_id_fkey";
+            columns: ["test_type_id"];
+            isOneToOne: false;
+            referencedRelation: "test_types";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       athlete_badges: {
         Row: {
           id: string;

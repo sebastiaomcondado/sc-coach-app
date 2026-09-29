@@ -71,3 +71,36 @@ export function bestResult(
     higherIsBetter ? (r.value > best.value ? r : best) : r.value < best.value ? r : best
   );
 }
+
+export type OneRmFlag = { testTypeId: string; suggestion: OneRmSuggestion };
+
+// Which of an athlete's fixed 1RM tests currently have a qualifying new-PR
+// suggestion: the estimate beats their current best logged result (or they
+// have no result yet), and it isn't at or below a value the coach already
+// dismissed for that test.
+export function computeQualifyingOneRmFlags(
+  testTypes: { id: string; name: string }[],
+  oneRmByCategory: Record<OneRmCategory, OneRmSuggestion | null>,
+  bestValueByTestType: Map<string, number>,
+  dismissedValueByTestType: Map<string, number>
+): OneRmFlag[] {
+  const flags: OneRmFlag[] = [];
+
+  for (const t of testTypes) {
+    const category = ONE_RM_TEST_NAME_TO_CATEGORY[t.name];
+    if (!category) continue;
+
+    const suggestion = oneRmByCategory[category];
+    if (!suggestion) continue;
+
+    const best = bestValueByTestType.get(t.id);
+    if (best != null && suggestion.value <= best) continue;
+
+    const dismissed = dismissedValueByTestType.get(t.id);
+    if (dismissed != null && suggestion.value <= dismissed) continue;
+
+    flags.push({ testTypeId: t.id, suggestion });
+  }
+
+  return flags;
+}

@@ -8,6 +8,7 @@ import { estimateOneRm, bestResult, ONE_RM_TEST_NAME_TO_CATEGORY } from "@/lib/t
 type TestType = { id: string; name: string; unit: string; higher_is_better: boolean };
 type TestResult = { id: string; test_type_id: string; value: number; logged_date: string };
 type Suggestion = { value: number; source: string };
+type OneRmFlag = { testTypeId: string; value: number; source: string };
 
 export function AthleteTestPanel({
   athleteId,
@@ -15,14 +16,17 @@ export function AthleteTestPanel({
   initialResults,
   readOnly,
   oneRmSuggestions,
+  flags,
 }: {
   athleteId: string;
   testTypes: TestType[];
   initialResults: TestResult[];
   readOnly: boolean;
   oneRmSuggestions?: Record<string, Suggestion>;
+  flags?: OneRmFlag[];
 }) {
   const [results, setResults] = useState(initialResults);
+  const [visibleFlags, setVisibleFlags] = useState(flags ?? []);
   const [selectedId, setSelectedId] = useState(testTypes[0]?.id ?? "");
   const [value, setValue] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -68,7 +72,27 @@ export function AthleteTestPanel({
     if (data) {
       setResults((prev) => [...prev, data]);
       setValue("");
+      setVisibleFlags((prev) => prev.filter((f) => f.testTypeId !== selected.id));
     }
+  }
+
+  function applyFlag(flag: OneRmFlag) {
+    setSelectedId(flag.testTypeId);
+    setValue(flag.value.toFixed(1));
+  }
+
+  async function dismissFlag(flag: OneRmFlag) {
+    setError(null);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("one_rm_suggestion_dismissals")
+      .upsert({ athlete_id: athleteId, test_type_id: flag.testTypeId, dismissed_value: flag.value });
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setVisibleFlags((prev) => prev.filter((f) => f.testTypeId !== flag.testTypeId));
   }
 
   async function handleSaveEdit(resultId: string) {
@@ -107,6 +131,42 @@ export function AthleteTestPanel({
 
   return (
     <div>
+      {!readOnly && visibleFlags.length > 0 && (
+        <ul className="mb-4 divide-y divide-neutral-800 rounded-lg border border-emerald-900/50">
+          {visibleFlags.map((flag) => {
+            const testType = testTypes.find((t) => t.id === flag.testTypeId);
+            if (!testType) return null;
+            return (
+              <li key={flag.testTypeId} className="flex items-center justify-between gap-3 px-4 py-3">
+                <span className="text-sm text-neutral-300">
+                  <span className="mr-1.5 h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+                  New estimated {testType.name}:{" "}
+                  <span className="font-medium text-emerald-400">
+                    {flag.value.toFixed(1)} {testType.unit}
+                  </span>
+                </span>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => applyFlag(flag)}
+                    className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                  >
+                    Use this
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => dismissFlag(flag)}
+                    className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-800"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
       <select
         value={selectedId}
         onChange={(e) => setSelectedId(e.target.value)}

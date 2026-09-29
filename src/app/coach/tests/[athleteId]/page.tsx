@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, getTeamOwnerId } from "@/lib/auth";
 import { AthleteTestPanel } from "@/components/AthleteTestPanel";
-import { computeOneRmSuggestions, ONE_RM_TEST_NAME_TO_CATEGORY } from "@/lib/tests";
+import { computeOneRmSuggestions, computeQualifyingOneRmFlags, ONE_RM_TEST_NAME_TO_CATEGORY } from "@/lib/tests";
 
 export default async function CoachAthleteTestsPage({
   params,
@@ -14,24 +14,29 @@ export default async function CoachAthleteTestsPage({
   const profile = await getCurrentProfile();
   const supabase = await createClient();
 
-  const [{ data: athlete }, { data: testTypes }, { data: results }, { data: loggedSets }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name").eq("id", athleteId).single(),
-    supabase
-      .from("test_types")
-      .select("id, name, unit, higher_is_better")
-      .or(`coach_id.is.null,coach_id.eq.${getTeamOwnerId(profile!)}`)
-      .order("name"),
-    supabase
-      .from("test_results")
-      .select("id, test_type_id, value, logged_date")
-      .eq("athlete_id", athleteId),
-    supabase
-      .from("logged_sets")
-      .select(
-        "weight, reps, workout_exercise:workout_exercises(exercise:exercises(name, one_rm_category), workout:workouts(scheduled_date))"
-      )
-      .eq("athlete_id", athleteId),
-  ]);
+  const [{ data: athlete }, { data: testTypes }, { data: results }, { data: loggedSets }, { data: dismissals }] =
+    await Promise.all([
+      supabase.from("profiles").select("id, full_name").eq("id", athleteId).single(),
+      supabase
+        .from("test_types")
+        .select("id, name, unit, higher_is_better")
+        .or(`coach_id.is.null,coach_id.eq.${getTeamOwnerId(profile!)}`)
+        .order("name"),
+      supabase
+        .from("test_results")
+        .select("id, test_type_id, value, logged_date")
+        .eq("athlete_id", athleteId),
+      supabase
+        .from("logged_sets")
+        .select(
+          "weight, reps, workout_exercise:workout_exercises(exercise:exercises(name, one_rm_category), workout:workouts(scheduled_date))"
+        )
+        .eq("athlete_id", athleteId),
+      supabase
+        .from("one_rm_suggestion_dismissals")
+        .select("test_type_id, dismissed_value")
+        .eq("athlete_id", athleteId),
+    ]);
 
   if (!athlete) notFound();
 
@@ -57,6 +62,21 @@ export default async function CoachAthleteTestsPage({
     if (suggestion) oneRmSuggestions[t.id] = suggestion;
   }
 
+  const bestByTestType = new Map<string, number>();
+  for (const r of results ?? []) {
+    const current = bestByTestType.get(r.test_type_id);
+    if (current == null || r.value > current) bestByTestType.set(r.test_type_id, r.value);
+  }
+  const dismissedByTestType = new Map<string, number>(
+    (dismissals ?? []).map((d) => [d.test_type_id, d.dismissed_value])
+  );
+  const flags = computeQualifyingOneRmFlags(
+    testTypes ?? [],
+    oneRmByCategory,
+    bestByTestType,
+    dismissedByTestType
+  ).map((f) => ({ testTypeId: f.testTypeId, value: f.suggestion.value, source: f.suggestion.source }));
+
   return (
     <div>
       <Link href="/coach/tests" className="mb-4 inline-block text-sm text-neutral-400 hover:text-white">
@@ -70,6 +90,7 @@ export default async function CoachAthleteTestsPage({
         initialResults={results ?? []}
         readOnly={false}
         oneRmSuggestions={oneRmSuggestions}
+        flags={flags}
       />
     </div>
   );
