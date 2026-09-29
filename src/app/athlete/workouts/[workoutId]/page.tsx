@@ -38,7 +38,7 @@ export default async function AthleteWorkoutPage({
     supabase
       .from("logged_sets")
       .select(
-        "weight, workout_exercise:workout_exercises(exercise:exercises(name), workout:workouts(scheduled_date))"
+        "weight, rpe, logged_at, workout_exercise:workout_exercises(exercise:exercises(name), workout:workouts(scheduled_date))"
       )
       .eq("athlete_id", profile!.id),
   ]);
@@ -52,6 +52,23 @@ export default async function AthleteWorkoutPage({
     }))
   );
   const priorBests = new Map(buildPersonalRecords(series).map((pr) => [pr.exerciseName, pr.weight]));
+
+  // Most recent logged set per exercise (by logged_at, across every workout),
+  // used to seed the weight-suggestion feature for the first set of a block.
+  const lastPerformanceByExercise = new Map<string, { weight: number | null; rpe: number | null }>();
+  const lastLoggedAtByExercise = new Map<string, string>();
+  for (const row of allLoggedSets ?? []) {
+    const we = Array.isArray(row.workout_exercise) ? row.workout_exercise[0] : row.workout_exercise;
+    const exercise = we?.exercise ? (Array.isArray(we.exercise) ? we.exercise[0] : we.exercise) : null;
+    const exerciseName = exercise?.name;
+    if (!exerciseName) continue;
+
+    const seenAt = lastLoggedAtByExercise.get(exerciseName);
+    if (!seenAt || row.logged_at > seenAt) {
+      lastLoggedAtByExercise.set(exerciseName, row.logged_at);
+      lastPerformanceByExercise.set(exerciseName, { weight: row.weight, rpe: row.rpe });
+    }
+  }
 
   const blocks: ExerciseBlock[] = (workoutExercises ?? []).map((we) => {
     const exercise = Array.isArray(we.exercise) ? we.exercise[0] : we.exercise;
@@ -69,6 +86,7 @@ export default async function AthleteWorkoutPage({
       prescribedRest: we.prescribed_rest,
       notes: we.notes,
       priorBest: priorBests.get(exerciseName) ?? null,
+      lastPerformance: lastPerformanceByExercise.get(exerciseName) ?? null,
       loggedSets: (loggedSets ?? [])
         .filter((s) => s.workout_exercise_id === we.id)
         .map((s) => ({ setNumber: s.set_number, reps: s.reps, weight: s.weight, rpe: s.rpe })),

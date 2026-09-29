@@ -18,10 +18,11 @@ export type ExerciseBlock = {
   prescribedRest: string | null;
   notes: string | null;
   priorBest: number | null;
+  lastPerformance: { weight: number | null; rpe: number | null } | null;
   loggedSets: { setNumber: number; reps: number | null; weight: number | null; rpe: number | null }[];
 };
 
-type SetInput = { reps: string; weight: string; rpe: string };
+type SetInput = { reps: string; weight: string; rpe: string; weightManual: boolean };
 
 function initialSets(block: ExerciseBlock): SetInput[] {
   const count = Math.max(block.prescribedSets ?? 0, block.loggedSets.length, 1);
@@ -31,8 +32,51 @@ function initialSets(block: ExerciseBlock): SetInput[] {
       reps: existing?.reps?.toString() ?? "",
       weight: existing?.weight?.toString() ?? "",
       rpe: existing?.rpe?.toString() ?? "",
+      weightManual: existing != null,
     };
   });
+}
+
+function roundToNearest2Point5(value: number): number {
+  return Math.round(value / 2.5) * 2.5;
+}
+
+// For each set in order, works out the weight to show when the athlete
+// hasn't manually entered one: set 1 is based on the athlete's most recent
+// logged set of this exact exercise (any workout); later sets are based on
+// whatever's currently in the previous row (typed or itself suggested),
+// live and before saving. Comparing that basis's RPE against today's
+// prescribed RPE nudges the weight up 5%, down 5%, or leaves it unchanged.
+function computeDisplayWeights(
+  sets: SetInput[],
+  lastPerformance: ExerciseBlock["lastPerformance"],
+  prescribedRpe: number | null
+): (number | null)[] {
+  const display: (number | null)[] = [];
+
+  for (let i = 0; i < sets.length; i++) {
+    if (sets[i].weightManual) {
+      const parsed = Number(sets[i].weight);
+      display.push(sets[i].weight !== "" && !Number.isNaN(parsed) ? parsed : null);
+      continue;
+    }
+
+    const baseWeight = i === 0 ? lastPerformance?.weight ?? null : display[i - 1];
+    const baseRpe =
+      i === 0 ? lastPerformance?.rpe ?? null : sets[i - 1].rpe !== "" ? Number(sets[i - 1].rpe) : null;
+
+    if (baseWeight == null || baseRpe == null || prescribedRpe == null || Number.isNaN(baseRpe)) {
+      display.push(null);
+    } else if (baseRpe < prescribedRpe) {
+      display.push(roundToNearest2Point5(baseWeight * 1.05));
+    } else if (baseRpe > prescribedRpe) {
+      display.push(roundToNearest2Point5(baseWeight * 0.95));
+    } else {
+      display.push(baseWeight);
+    }
+  }
+
+  return display;
 }
 
 export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks: ExerciseBlock[] }) {
@@ -49,14 +93,16 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
     setSavedId(null);
     setSets((prev) => ({
       ...prev,
-      [workoutExerciseId]: prev[workoutExerciseId].map((s, i) => (i === index ? { ...s, ...patch } : s)),
+      [workoutExerciseId]: prev[workoutExerciseId].map((s, i) =>
+        i === index ? { ...s, ...patch, ...(patch.weight !== undefined ? { weightManual: true } : {}) } : s
+      ),
     }));
   }
 
   function addSet(workoutExerciseId: string) {
     setSets((prev) => ({
       ...prev,
-      [workoutExerciseId]: [...prev[workoutExerciseId], { reps: "", weight: "", rpe: "" }],
+      [workoutExerciseId]: [...prev[workoutExerciseId], { reps: "", weight: "", rpe: "", weightManual: false }],
     }));
   }
 
@@ -66,13 +112,19 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
     setPrId(null);
 
     const supabase = createClient();
+    const block = blocks.find((b) => b.workoutExerciseId === workoutExerciseId);
+    const displayWeights = computeDisplayWeights(
+      sets[workoutExerciseId],
+      block?.lastPerformance ?? null,
+      block?.prescribedRpe ?? null
+    );
     const rows = sets[workoutExerciseId]
       .map((s, i) => ({
         workout_exercise_id: workoutExerciseId,
         athlete_id: athleteId,
         set_number: i + 1,
         reps: s.reps ? Number(s.reps) : null,
-        weight: s.weight ? Number(s.weight) : null,
+        weight: s.weightManual ? (s.weight ? Number(s.weight) : null) : displayWeights[i],
         rpe: s.rpe ? Number(s.rpe) : null,
       }))
       .filter((r) => r.reps !== null || r.weight !== null || r.rpe !== null);
@@ -89,7 +141,6 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
       }
     }
 
-    const block = blocks.find((b) => b.workoutExerciseId === workoutExerciseId);
     const weightsLogged = rows.map((r) => r.weight).filter((w): w is number => w != null);
     const bestJustLogged = weightsLogged.length > 0 ? Math.max(...weightsLogged) : null;
     const isPr = bestJustLogged != null && bestJustLogged > (block?.priorBest ?? 0);
@@ -155,26 +206,33 @@ export function WorkoutLogger({ athleteId, blocks }: { athleteId: string; blocks
               <span>Weight</span>
               <span>RPE</span>
             </div>
-            {sets[block.workoutExerciseId].map((s, i) => (
-              <div key={i} className="grid grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
-                <span className="flex items-center text-sm text-neutral-400">{i + 1}</span>
-                <input
-                  value={s.reps}
-                  onChange={(e) => updateSet(block.workoutExerciseId, i, { reps: e.target.value })}
-                  className="w-full min-w-0 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
-                />
-                <input
-                  value={s.weight}
-                  onChange={(e) => updateSet(block.workoutExerciseId, i, { weight: e.target.value })}
-                  className="w-full min-w-0 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
-                />
-                <input
-                  value={s.rpe}
-                  onChange={(e) => updateSet(block.workoutExerciseId, i, { rpe: e.target.value })}
-                  className="w-full min-w-0 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
-                />
-              </div>
-            ))}
+            {(() => {
+              const displayWeights = computeDisplayWeights(
+                sets[block.workoutExerciseId],
+                block.lastPerformance,
+                block.prescribedRpe
+              );
+              return sets[block.workoutExerciseId].map((s, i) => (
+                <div key={i} className="grid grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
+                  <span className="flex items-center text-sm text-neutral-400">{i + 1}</span>
+                  <input
+                    value={s.reps}
+                    onChange={(e) => updateSet(block.workoutExerciseId, i, { reps: e.target.value })}
+                    className="w-full min-w-0 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                  />
+                  <input
+                    value={s.weightManual ? s.weight : (displayWeights[i]?.toString() ?? "")}
+                    onChange={(e) => updateSet(block.workoutExerciseId, i, { weight: e.target.value })}
+                    className="w-full min-w-0 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                  />
+                  <input
+                    value={s.rpe}
+                    onChange={(e) => updateSet(block.workoutExerciseId, i, { rpe: e.target.value })}
+                    className="w-full min-w-0 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+                  />
+                </div>
+              ));
+            })()}
           </div>
 
           <div className="mt-3 flex items-center gap-3">
