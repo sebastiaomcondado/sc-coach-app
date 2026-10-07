@@ -43,7 +43,7 @@ function emptyRow(defaultExerciseId: string): Row {
 
 export function WorkoutBuilder({
   athletes,
-  exercises,
+  exercises: initialExercises,
   templates,
   cycles,
   initialTemplateId,
@@ -55,6 +55,13 @@ export function WorkoutBuilder({
   initialTemplateId?: string;
 }) {
   const router = useRouter();
+  const [exercises, setExercises] = useState(initialExercises);
+  const [showNewExercise, setShowNewExercise] = useState(false);
+  const [newExerciseName, setNewExerciseName] = useState("");
+  const [newExerciseCategory, setNewExerciseCategory] = useState("");
+  const [newExerciseVideoUrl, setNewExerciseVideoUrl] = useState("");
+  const [newExerciseError, setNewExerciseError] = useState<string | null>(null);
+  const [newExerciseLoading, setNewExerciseLoading] = useState(false);
   const [athleteIds, setAthleteIds] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [scheduledDate, setScheduledDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -170,6 +177,39 @@ export function WorkoutBuilder({
 
   function removeRow(index: number) {
     setRows((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleCreateExercise() {
+    const name = newExerciseName.trim();
+    if (!name) return;
+
+    setNewExerciseError(null);
+    setNewExerciseLoading(true);
+
+    const supabase = createClient();
+    const { data, error: insertError } = await supabase
+      .from("exercises")
+      .insert({
+        name,
+        category: newExerciseCategory.trim() || null,
+        video_url: newExerciseVideoUrl.trim() || null,
+      })
+      .select("id, name, category, video_url")
+      .single();
+
+    setNewExerciseLoading(false);
+
+    if (insertError || !data) {
+      setNewExerciseError(insertError?.message ?? "Could not create exercise.");
+      return;
+    }
+
+    setExercises((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+    setRows((prev) => [...prev, emptyRow(data.id)]);
+    setNewExerciseName("");
+    setNewExerciseCategory("");
+    setNewExerciseVideoUrl("");
+    setShowNewExercise(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -361,14 +401,69 @@ export function WorkoutBuilder({
       <div>
         <div className="mb-2 flex items-center justify-between">
           <label className="text-sm text-neutral-300">Exercises</label>
-          <button
-            type="button"
-            onClick={addRow}
-            className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
-          >
-            + Add exercise
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowNewExercise((v) => !v)}
+              className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+            >
+              + New exercise
+            </button>
+            <button
+              type="button"
+              onClick={addRow}
+              className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+            >
+              + Add exercise
+            </button>
+          </div>
         </div>
+
+        {showNewExercise && (
+          <div className="mb-3 rounded-md border border-neutral-800 bg-neutral-900/50 p-3">
+            <p className="mb-2 text-xs text-neutral-400">
+              Creates a new exercise in your library and adds it to this workout.
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <input
+                placeholder="Name"
+                value={newExerciseName}
+                onChange={(e) => setNewExerciseName(e.target.value)}
+                className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+              />
+              <input
+                placeholder="Category (optional)"
+                value={newExerciseCategory}
+                onChange={(e) => setNewExerciseCategory(e.target.value)}
+                className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+              />
+              <input
+                placeholder="Video URL (optional)"
+                value={newExerciseVideoUrl}
+                onChange={(e) => setNewExerciseVideoUrl(e.target.value)}
+                className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-white"
+              />
+            </div>
+            {newExerciseError && <p className="mt-2 text-sm text-red-400">{newExerciseError}</p>}
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={handleCreateExercise}
+                disabled={newExerciseLoading || !newExerciseName.trim()}
+                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+              >
+                {newExerciseLoading ? "Creating…" : "Create & add"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNewExercise(false)}
+                className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300 hover:bg-neutral-800"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-3">
           {rows.map((row, index) => (
